@@ -71,7 +71,7 @@
 #include "ciaaPOSIX_stdio.h"  /* <= device handler header */
 #include "ciaaPOSIX_string.h" /* <= string header */
 #include "ciaak.h"            /* <= ciaa kernel header */
-#include "blinking_echo.h"         /* <= own header */
+#include "telemetria.h"         /* <= own header */
 
 /*==================[macros and definitions]=================================*/
 
