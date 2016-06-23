@@ -211,7 +211,7 @@ TASK(InitTask)
 
    /* activate example tasks */
    Periodic_Task_Counter = 0;
-   SetRelAlarm(ActivateDigitalInTask, 200, 200);
+   SetRelAlarm(ActivateDigitalInTask, 200, 500);  //Cada 500 ms
 
    /* Activates the SerialEchoTask task */
    ActivateTask(SerialEchoTask);
@@ -278,6 +278,9 @@ TASK(DigitalInTask)
     *    Blink output 4
     */
 
+   char message3[] = "Tarea Digital in\n";
+   ciaaPOSIX_write(fd_uart1, message3, ciaaPOSIX_strlen(message3));
+
    /* variables to store input/output status */
    uint8_t inputs = 0, outputs = 0;
 
@@ -314,10 +317,31 @@ TASK(AnalogInTask)
     *    Read inputs 0..3, update outputs 0..3.
     *    Blink output 4
     */
-
+   char message4[] = "Tarea Analog in \n";
+   ciaaPOSIX_write(fd_uart1, message4, ciaaPOSIX_strlen(message4));
    /* variables to store input/output status */
    ciaaPOSIX_printf("task analog");
-   /* end PeriodicTask */
+
+   /* Activates the ModBustask */
+   ActivateTask(ModBusTask);
+
+   /* end AnalogInTask */
+   TerminateTask();
+}
+
+TASK(ModBusTask)
+{
+   /*
+    * Example:
+    *    Read inputs 0..3, update outputs 0..3.
+    *    Blink output 4
+    */
+   char message5[] = "Tarea Mod bus \n";
+   ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
+   /* variables to store input/output status */
+   ciaaPOSIX_printf("ModBusTask");
+
+   /* end ModBusTask */
    TerminateTask();
 }
 /** @} doxygen end group definition */

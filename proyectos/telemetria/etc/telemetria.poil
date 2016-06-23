@@ -101,6 +101,16 @@ TASK AnalogInTask {
     RESOURCE = POSIXR;
 }
 
+TASK ModBusTask {
+    PRIORITY = 5;
+    ACTIVATION = 1;
+    STACK = 512;
+    TYPE = EXTENDED;
+    SCHEDULE = FULL;
+    EVENT = POSIXE;
+    RESOURCE = POSIXR;
+}
+
 ALARM ActivateDigitalInTask {
     COUNTER = SoftwareCounter;
     ACTION = ACTIVATETASK {
