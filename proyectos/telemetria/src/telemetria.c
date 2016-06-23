@@ -211,7 +211,7 @@ TASK(InitTask)
 
    /* activate example tasks */
    Periodic_Task_Counter = 0;
-   SetRelAlarm(ActivatePeriodicTask, 200, 200);
+   SetRelAlarm(ActivateDigitalInTask, 200, 200);
 
    /* Activates the SerialEchoTask task */
    ActivateTask(SerialEchoTask);
@@ -270,7 +270,7 @@ TASK(SerialEchoTask)
  * This task copies the status of the inputs bits 0..3 to the output bits 0..3.
  * This task also blinks the output 4
  */
-TASK(PeriodicTask)
+TASK(DigitalInTask)
 {
    /*
     * Example:
@@ -301,10 +301,25 @@ TASK(PeriodicTask)
    Periodic_Task_Counter++;
    ciaaPOSIX_printf("Periodic Task: %d\n", Periodic_Task_Counter);
 
+   /* Activates the SerialEchoTask task */
+   ActivateTask(AnalogInTask);
+
    /* end PeriodicTask */
    TerminateTask();
 }
+TASK(AnalogInTask)
+{
+   /*
+    * Example:
+    *    Read inputs 0..3, update outputs 0..3.
+    *    Blink output 4
+    */
 
+   /* variables to store input/output status */
+   ciaaPOSIX_printf("task analog");
+   /* end PeriodicTask */
+   TerminateTask();
+}
 /** @} doxygen end group definition */
 /** @} doxygen end group definition */
 /** @} doxygen end group definition */
