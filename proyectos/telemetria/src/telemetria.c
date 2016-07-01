@@ -72,7 +72,7 @@
 #include "ciaaPOSIX_string.h" /* <= string header */
 #include "ciaak.h"            /* <= ciaa kernel header */
 #include "telemetria.h"         /* <= own header */
-
+#include "Funciones.h"         /* <= own header */
 /*==================[macros and definitions]=================================*/
 
 /*==================[internal data declaration]==============================*/
@@ -90,7 +90,7 @@ static int32_t fd_in;
  *
  * Device path /dev/dio/out/0
  */
-static int32_t fd_out;
+//static int32_t fd_out;
 
 /** \brief File descriptor of the USB uart
  *
@@ -113,6 +113,19 @@ static int32_t fd_uart2;
  *
  */
 static uint32_t Periodic_Task_Counter;
+static uint32_t Contador_In1;
+static uint32_t Contador_In2;
+static uint32_t Contador_In3;
+static uint32_t Contador_In4;
+
+/** \brief File descriptor of the RS232 uart
+ *
+ * Device path /dev/serial/uart/2
+ */
+static int estado_in1=0;
+static int estado_in2=0;
+static int estado_in3=0;
+static int estado_in4=0;
 
 /*==================[external data definition]===============================*/
 
@@ -213,6 +226,12 @@ TASK(InitTask)
    Periodic_Task_Counter = 0;
    SetRelAlarm(ActivateDigitalInTask, 200, 500);  //Cada 500 ms
 
+   /*Contadores a cero*/
+   Contador_In1=0;
+   Contador_In2=0;
+   Contador_In3=0;
+   Contador_In4=0;
+
    /* Activates the SerialEchoTask task */
    ActivateTask(SerialEchoTask);
 
@@ -279,7 +298,7 @@ TASK(DigitalInTask)
     */
 
    char message3[] = "Tarea Digital in\n";
-   ciaaPOSIX_write(fd_uart1, message3, ciaaPOSIX_strlen(message3));
+//   ciaaPOSIX_write(fd_uart1, message3, ciaaPOSIX_strlen(message3));
 
    /* variables to store input/output status */
    uint8_t inputs = 0, outputs = 0;
@@ -287,22 +306,80 @@ TASK(DigitalInTask)
    /* read inputs */
    ciaaPOSIX_read(fd_in, &inputs, 1);
 
+   if ((inputs&0x01) != estado_in1)
+   {
+	   if ((inputs&0x01) == 1)
+	   {
+		   char messagein11[] = "IN1=1 \r";
+		   ciaaPOSIX_write(fd_uart1, messagein11, ciaaPOSIX_strlen(messagein11));
+		   estado_in1=1;
+	   }else
+	   {
+		   char messagein10[] = "IN1=0 \r";
+		   ciaaPOSIX_write(fd_uart1, messagein10, ciaaPOSIX_strlen(messagein10));
+		   estado_in1=0;
+	   }
+   }
+   if ((inputs&0x02) != estado_in2)
+      {
+   	   if ((inputs&0x02) == 2)
+   	   {
+   		   char messagein21[] = "IN2=1 \r";
+   		   ciaaPOSIX_write(fd_uart1, messagein21, ciaaPOSIX_strlen(messagein21));
+   		   estado_in2=2;
+   	   }else
+   	   {
+   		   char messagein20[] = "IN2=0 \r";
+   		   ciaaPOSIX_write(fd_uart1, messagein20, ciaaPOSIX_strlen(messagein20));
+   		   estado_in2=0;
+   	   }
+      }
+   if ((inputs&0x04) != estado_in3)
+      {
+   	   if ((inputs&0x04) == 4)
+   	   {
+   		   char messagein31[] = "IN3=1 \r";
+   		   ciaaPOSIX_write(fd_uart1, messagein31, ciaaPOSIX_strlen(messagein31));
+   		   estado_in3=4;
+   	   }else
+   	   {
+   		   char messagein30[] = "IN3=0 \r";
+   		   ciaaPOSIX_write(fd_uart1, messagein30, ciaaPOSIX_strlen(messagein30));
+   		   estado_in3=0;
+   	   }
+      }
+   if ((inputs&0x08) != estado_in4)
+      {
+   	   if ((inputs&0x08) == 8)
+   	   {
+   		   char messagein41[] = "IN4=1 \r";
+   		   ciaaPOSIX_write(fd_uart1, messagein41, ciaaPOSIX_strlen(messagein41));
+   		   estado_in4=8;
+   	   }else
+   	   {
+   		   char messagein40[] = "IN4=0 \r";
+   		   ciaaPOSIX_write(fd_uart1, messagein40, ciaaPOSIX_strlen(messagein40));
+   		   estado_in4=0;
+   	   }
+      }
+
+   blinkled();
    /* read outputs */
-   ciaaPOSIX_read(fd_out, &outputs, 1);
+ //  ciaaPOSIX_read(fd_out, &outputs, 1);
 
    /* update outputs with inputs */
-   outputs &= 0xF0;
-   outputs |= inputs & 0x0F;
+   //outputs &= 0xF0;
+   //outputs |= inputs & 0x0F;
 
    /* blink */
-   outputs ^= 0x10;
+ //  outputs ^= 0x10;
 
    /* write */
-   ciaaPOSIX_write(fd_out, &outputs, 1);
+ //  ciaaPOSIX_write(fd_out, &outputs, 1);
 
    /* Print Task info */
    Periodic_Task_Counter++;
-   ciaaPOSIX_printf("Periodic Task: %d\n", Periodic_Task_Counter);
+//   ciaaPOSIX_printf("Periodic Task: %d\n", Periodic_Task_Counter);
 
    /* Activates the SerialEchoTask task */
    ActivateTask(AnalogInTask);
@@ -318,7 +395,7 @@ TASK(AnalogInTask)
     *    Blink output 4
     */
    char message4[] = "Tarea Analog in \n";
-   ciaaPOSIX_write(fd_uart1, message4, ciaaPOSIX_strlen(message4));
+//   ciaaPOSIX_write(fd_uart1, message4, ciaaPOSIX_strlen(message4));
    /* variables to store input/output status */
    ciaaPOSIX_printf("task analog");
 
@@ -337,7 +414,7 @@ TASK(ModBusTask)
     *    Blink output 4
     */
    char message5[] = "Tarea Mod bus \n";
-   ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
+ //  ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
    /* variables to store input/output status */
    ciaaPOSIX_printf("ModBusTask");
 
