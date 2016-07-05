@@ -111,10 +111,30 @@ TASK ModBusTask {
     RESOURCE = POSIXR;
 }
 
+TASK LedsTask {
+    PRIORITY = 3;
+    ACTIVATION = 1;
+    STACK = 512;
+    TYPE = EXTENDED;
+    SCHEDULE = FULL;
+    RESOURCE = POSIXR;
+    EVENT = POSIXE;
+    AUTOSATART = TRUE {
+        APPMODE = AppMode1;
+    }
+}
+
 ALARM ActivateDigitalInTask {
     COUNTER = SoftwareCounter;
     ACTION = ACTIVATETASK {
         TASK = DigitalInTask;
+    }
+}
+
+ALARM ActivateLedsTask {
+    COUNTER = SoftwareCounter;
+    ACTION = ACTIVATETASK {
+        TASK = LedsTask;
     }
 }
 

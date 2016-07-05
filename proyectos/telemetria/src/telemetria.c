@@ -42,30 +42,6 @@
  ** in header file modules/plataforms/x86/inc/ciaaDriverUart_Internal.h
  **/
 
-/** \addtogroup CIAA_Firmware CIAA Firmware
- ** @{ */
-/** \addtogroup Examples CIAA Firmware Examples
- ** @{ */
-/** \addtogroup Blinking Blinking_echo example source file
- ** @{ */
-
-/*
- * Initials     Name
- * ---------------------------
- * MaCe         Mariano Cerdeiro
- * PR           Pablo Ridolfi
- * JuCe         Juan Cecconi
- * GMuro        Gustavo Muro
- */
-
-/*
- * modification history (new versions first)
- * -----------------------------------------------------------
- * 20141019 v0.0.2   JuCe add printf in each task,
- *                        remove trailing spaces
- * 20140731 v0.0.1   PR   first functional version
- */
-
 /*==================[inclusions]=============================================*/
 #include "os.h"               /* <= operating system header */
 #include "ciaaPOSIX_stdio.h"  /* <= device handler header */
@@ -126,6 +102,10 @@ static int estado_in1=0;
 static int estado_in2=0;
 static int estado_in3=0;
 static int estado_in4=0;
+
+uint8_t statusgps=0;
+uint8_t statusgsm=0;
+
 
 /*==================[external data definition]===============================*/
 
@@ -225,7 +205,7 @@ TASK(InitTask)
    /* activate example tasks */
    Periodic_Task_Counter = 0;
    SetRelAlarm(ActivateDigitalInTask, 200, 500);  //Cada 500 ms
-
+   SetRelAlarm(ActivateLedsTask, 100, 300);  //Cada 500 ms
    /*Contadores a cero*/
    Contador_In1=0;
    Contador_In2=0;
@@ -293,8 +273,7 @@ TASK(DigitalInTask)
 {
    /*
     * Example:
-    *    Read inputs 0..3, update outputs 0..3.
-    *    Blink output 4
+    *    Read inputs 0..3
     */
 
    char message3[] = "Tarea Digital in\n";
@@ -378,7 +357,7 @@ TASK(DigitalInTask)
  //  ciaaPOSIX_write(fd_out, &outputs, 1);
 
    /* Print Task info */
-   Periodic_Task_Counter++;
+   //Periodic_Task_Counter++;
 //   ciaaPOSIX_printf("Periodic Task: %d\n", Periodic_Task_Counter);
 
    /* Activates the SerialEchoTask task */
@@ -394,7 +373,7 @@ TASK(AnalogInTask)
     *    Read inputs 0..3, update outputs 0..3.
     *    Blink output 4
     */
-   char message4[] = "Tarea Analog in \n";
+   char message4[] = "Tarea Analog in \r";
 //   ciaaPOSIX_write(fd_uart1, message4, ciaaPOSIX_strlen(message4));
    /* variables to store input/output status */
    ciaaPOSIX_printf("task analog");
@@ -413,12 +392,54 @@ TASK(ModBusTask)
     *    Read inputs 0..3, update outputs 0..3.
     *    Blink output 4
     */
-   char message5[] = "Tarea Mod bus \n";
+   char message5[] = "Tarea Mod bus \r";
  //  ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
    /* variables to store input/output status */
    ciaaPOSIX_printf("ModBusTask");
 
    /* end ModBusTask */
+   TerminateTask();
+}
+
+TASK(LedsTask)
+{
+   /*
+    * Example:
+    *    Blink Led rojo si statusgps=0
+    *    Blink Led verde si statusgsm=0
+    */
+   uint8_t outputs;
+   char message5[] = "Tarea LED  \r";
+   ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
+   /* variables to store input/output status */
+   ciaaPOSIX_printf("LEDSTask");
+   ciaaPOSIX_read(fd_out, &outputs, 1);
+
+   if (statusgsm == 0)
+   {
+	   outputs ^= 0x20;     //Blink Ledverde
+   }else
+   {
+	   outputs |= 0x20;     //On Ledverde
+   }
+   if (statusgps == 0)
+   {
+	   outputs ^= 0x08;     //Blink Ledrojo
+   }else
+   {
+	   outputs |= 0x08;     //On Ledrojo
+   }
+
+   ciaaPOSIX_write(fd_out, &outputs, 1);
+   Periodic_Task_Counter++;
+
+   if (Periodic_Task_Counter == 20)
+   {
+	   statusgsm=1;
+	   statusgps=1;
+   }
+
+   /* end LedsTask */
    TerminateTask();
 }
 /** @} doxygen end group definition */
