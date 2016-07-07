@@ -197,4 +197,15 @@ ISR UART3_IRQHandler {
    PRIORITY = 0;
 };
 
+ISR ADC0_IRQHandler {
+    INTERRUPT = ADC0;
+    CATEGORY = 2;
+    PRIORITY = 0;
+}
+
+ISR ADC1_IRQHandler {
+    INTERRUPT = ADC1;
+    CATEGORY = 2;
+    PRIORITY = 0;
+}
 };

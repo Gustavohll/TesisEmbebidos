@@ -46,6 +46,7 @@
 #include "os.h"               /* <= operating system header */
 #include "ciaaPOSIX_stdio.h"  /* <= device handler header */
 #include "ciaaPOSIX_string.h" /* <= string header */
+#include "ciaaPOSIX_stdlib.h"
 #include "ciaak.h"            /* <= ciaa kernel header */
 #include "telemetria.h"         /* <= own header */
 #include "Funciones.h"         /* <= own header */
@@ -56,6 +57,14 @@
 /*==================[internal functions declaration]=========================*/
 
 /*==================[internal data definition]===============================*/
+/** \brief File descriptor for ADC
+ *
+ * Device path /dev/serial/aio/in/0
+ */
+static int32_t fd_adc;
+static int32_t fd_adc_3;
+static int32_t fd_adc_2;
+
 /** \brief File descriptor for digital input ports
  *
  * Device path /dev/dio/in/0
@@ -201,6 +210,18 @@ TASK(InitTask)
 
    /* change FIFO TRIGGER LEVEL for RS232 */
    ciaaPOSIX_ioctl(fd_uart1, ciaaPOSIX_IOCTL_SET_FIFO_TRIGGER_LEVEL, (void *)ciaaFIFO_TRIGGER_LEVEL3);
+
+   /* open CIAA ADC */
+//   fd_adc_2 = ciaaPOSIX_open("/dev/serial/aio/in/0", ciaaPOSIX_O_RDONLY);
+   fd_adc_3 = ciaaPOSIX_open("/dev/serial/aio/in/0", ciaaPOSIX_O_RDONLY);
+
+   /* open CIAA CH3 */
+   ciaaPOSIX_ioctl(fd_adc_3, ciaaPOSIX_IOCTL_SET_SAMPLE_RATE, 100000);
+   ciaaPOSIX_ioctl(fd_adc_3, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_3);
+
+   /* open CIAA CH2 */
+ //  ciaaPOSIX_ioctl(fd_adc_2, ciaaPOSIX_IOCTL_SET_SAMPLE_RATE, 100000);
+ //  ciaaPOSIX_ioctl(fd_adc_2, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_2);
 
    /* activate example tasks */
    Periodic_Task_Counter = 0;
@@ -377,6 +398,24 @@ TASK(AnalogInTask)
 //   ciaaPOSIX_write(fd_uart1, message4, ciaaPOSIX_strlen(message4));
    /* variables to store input/output status */
    ciaaPOSIX_printf("task analog");
+
+
+   int32_t count;
+   uint16_t hr_ciaaDac,adc_1,adc_2,adc_3;
+
+   /* Read ADC1. */
+
+ //  ciaaPOSIX_read(fd_adc, &adc_1, sizeof(adc_1));
+
+   /* Read ADC2. */
+   ciaaPOSIX_ioctl(fd_adc_3, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_2);
+   ciaaPOSIX_read(fd_adc_3, &adc_2, sizeof(adc_2));
+
+   /* Read ADC3. */
+   ciaaPOSIX_ioctl(fd_adc_3, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_3);
+   ciaaPOSIX_read(fd_adc_3, &adc_3, sizeof(adc_3));
+
+   //ciaaPOSIX_write(fd_uart1, hr_ciaaDac, ciaaPOSIX_strlen(hr_ciaaDac));
 
    /* Activates the ModBustask */
    ActivateTask(ModBusTask);
