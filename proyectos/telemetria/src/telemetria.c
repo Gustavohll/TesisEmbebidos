@@ -61,9 +61,8 @@
  *
  * Device path /dev/serial/aio/in/0
  */
-static int32_t fd_adc;
-static int32_t fd_adc_3;
-static int32_t fd_adc_2;
+static int32_t fd_adc_0;
+static int32_t fd_adc_1;
 
 /** \brief File descriptor for digital input ports
  *
@@ -213,15 +212,17 @@ TASK(InitTask)
 
    /* open CIAA ADC */
 //   fd_adc_2 = ciaaPOSIX_open("/dev/serial/aio/in/0", ciaaPOSIX_O_RDONLY);
-   fd_adc_3 = ciaaPOSIX_open("/dev/serial/aio/in/0", ciaaPOSIX_O_RDONLY);
+   fd_adc_0 = ciaaPOSIX_open("/dev/serial/aio/in/0", ciaaPOSIX_O_RDONLY);
+
+   fd_adc_1 = ciaaPOSIX_open("/dev/serial/aio/in/1", ciaaPOSIX_O_RDONLY);
 
    /* open CIAA CH3 */
-   ciaaPOSIX_ioctl(fd_adc_3, ciaaPOSIX_IOCTL_SET_SAMPLE_RATE, 100000);
-   ciaaPOSIX_ioctl(fd_adc_3, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_3);
+   ciaaPOSIX_ioctl(fd_adc_0, ciaaPOSIX_IOCTL_SET_SAMPLE_RATE, 100000);
+   ciaaPOSIX_ioctl(fd_adc_0, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_3);
 
-   /* open CIAA CH2 */
- //  ciaaPOSIX_ioctl(fd_adc_2, ciaaPOSIX_IOCTL_SET_SAMPLE_RATE, 100000);
- //  ciaaPOSIX_ioctl(fd_adc_2, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_2);
+   /* open CIAA CH1 */
+   ciaaPOSIX_ioctl(fd_adc_1, ciaaPOSIX_IOCTL_SET_SAMPLE_RATE, 100000);
+   ciaaPOSIX_ioctl(fd_adc_1, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_1);
 
    /* activate example tasks */
    Periodic_Task_Counter = 0;
@@ -407,15 +408,22 @@ TASK(AnalogInTask)
 
  //  ciaaPOSIX_read(fd_adc, &adc_1, sizeof(adc_1));
 
-   /* Read ADC2. */
-   ciaaPOSIX_ioctl(fd_adc_3, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_2);
-   ciaaPOSIX_read(fd_adc_3, &adc_2, sizeof(adc_2));
+   /* Read CH3 , ADC0. */
 
-   /* Read ADC3. */
-   ciaaPOSIX_ioctl(fd_adc_3, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_3);
-   ciaaPOSIX_read(fd_adc_3, &adc_3, sizeof(adc_3));
+   ciaaPOSIX_read(fd_adc_0, &adc_3, sizeof(adc_3));
+
+   /* Read CH1 , ADC1. */
+
+   ciaaPOSIX_read(fd_adc_1, &adc_1, sizeof(adc_1));
 
    //ciaaPOSIX_write(fd_uart1, hr_ciaaDac, ciaaPOSIX_strlen(hr_ciaaDac));
+
+
+   ciaaPOSIX_ioctl(fd_adc_0, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_2);
+
+
+   ciaaPOSIX_read(fd_adc_0, &adc_2, sizeof(adc_2));
+
 
    /* Activates the ModBustask */
    ActivateTask(ModBusTask);
