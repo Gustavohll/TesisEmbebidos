@@ -51,6 +51,8 @@
 #include "telemetria.h"         /* <= own header */
 #include "Funciones.h"         /* <= own header */
 /*==================[macros and definitions]=================================*/
+#define Test_DigitalInTask
+//#define Test_LedTask
 
 /*==================[internal data declaration]==============================*/
 
@@ -110,6 +112,8 @@ static int estado_in1=0;
 static int estado_in2=0;
 static int estado_in3=0;
 static int estado_in4=0;
+static int cambioestado=0;
+static char valor_in[4];
 
 uint8_t statusgps=0;
 uint8_t statusgsm=0;
@@ -297,90 +301,79 @@ TASK(DigitalInTask)
     * Example:
     *    Read inputs 0..3
     */
-
-   char message3[] = "Tarea Digital in\n";
+	char message3[] = "Tarea Digital in\n";
 //   ciaaPOSIX_write(fd_uart1, message3, ciaaPOSIX_strlen(message3));
 
    /* variables to store input/output status */
-   uint8_t inputs = 0, outputs = 0;
+	uint8_t inputs = 0, outputs = 0;
 
    /* read inputs */
-   ciaaPOSIX_read(fd_in, &inputs, 1);
+    ciaaPOSIX_read(fd_in, &inputs, 1);
 
-   if ((inputs&0x01) != estado_in1)
-   {
-	   if ((inputs&0x01) == 1)
-	   {
-		   char messagein11[] = "IN1=1 \r";
-		   ciaaPOSIX_write(fd_uart1, messagein11, ciaaPOSIX_strlen(messagein11));
-		   estado_in1=1;
-	   }else
-	   {
-		   char messagein10[] = "IN1=0 \r";
-		   ciaaPOSIX_write(fd_uart1, messagein10, ciaaPOSIX_strlen(messagein10));
-		   estado_in1=0;
-	   }
-   }
+    if ((inputs&0x01) != estado_in1)
+    {
+	    cambioestado=1;
+	    if ((inputs&0x01) == 1)
+	    {
+		    estado_in1=1;
+		    valor_in[0]='1';
+	    }else
+	    {
+		    estado_in1=0;
+		    valor_in[0]='0';
+	    }
+    }
    if ((inputs&0x02) != estado_in2)
-      {
-   	   if ((inputs&0x02) == 2)
+   {
+	   cambioestado=1;
+	   if ((inputs&0x02) == 2)
    	   {
-   		   char messagein21[] = "IN2=1 \r";
-   		   ciaaPOSIX_write(fd_uart1, messagein21, ciaaPOSIX_strlen(messagein21));
    		   estado_in2=2;
+   		   valor_in[1]='1';
    	   }else
    	   {
-   		   char messagein20[] = "IN2=0 \r";
-   		   ciaaPOSIX_write(fd_uart1, messagein20, ciaaPOSIX_strlen(messagein20));
    		   estado_in2=0;
+   		   valor_in[1]='0';
    	   }
       }
    if ((inputs&0x04) != estado_in3)
-      {
+   {
+	   cambioestado=1;
    	   if ((inputs&0x04) == 4)
    	   {
-   		   char messagein31[] = "IN3=1 \r";
-   		   ciaaPOSIX_write(fd_uart1, messagein31, ciaaPOSIX_strlen(messagein31));
    		   estado_in3=4;
+   		   valor_in[2]='1';
    	   }else
    	   {
-   		   char messagein30[] = "IN3=0 \r";
-   		   ciaaPOSIX_write(fd_uart1, messagein30, ciaaPOSIX_strlen(messagein30));
    		   estado_in3=0;
+   		   valor_in[2]='0';
    	   }
       }
    if ((inputs&0x08) != estado_in4)
-      {
+   {
+	   cambioestado=1;
    	   if ((inputs&0x08) == 8)
    	   {
-   		   char messagein41[] = "IN4=1 \r";
-   		   ciaaPOSIX_write(fd_uart1, messagein41, ciaaPOSIX_strlen(messagein41));
    		   estado_in4=8;
+   		   valor_in[3]='1';
    	   }else
    	   {
-   		   char messagein40[] = "IN4=0 \r";
-   		   ciaaPOSIX_write(fd_uart1, messagein40, ciaaPOSIX_strlen(messagein40));
    		   estado_in4=0;
+   		   valor_in[3]='0';
    	   }
       }
+   if (cambioestado == 1)
+   {
 
+#ifdef Test_DigitalInTask
+	   char messageinestado[] = "Estado de las entradas: \r";
+	   ciaaPOSIX_write(fd_uart1, messageinestado, ciaaPOSIX_strlen(messageinestado));
+	   ciaaPOSIX_write(fd_uart1, valor_in, 4);
+#endif
+	   /* Genero evento de cambio de estado*/
+	   cambioestado=0;
+   }
    blinkled();
-   /* read outputs */
- //  ciaaPOSIX_read(fd_out, &outputs, 1);
-
-   /* update outputs with inputs */
-   //outputs &= 0xF0;
-   //outputs |= inputs & 0x0F;
-
-   /* blink */
- //  outputs ^= 0x10;
-
-   /* write */
- //  ciaaPOSIX_write(fd_out, &outputs, 1);
-
-   /* Print Task info */
-   //Periodic_Task_Counter++;
-//   ciaaPOSIX_printf("Periodic Task: %d\n", Periodic_Task_Counter);
 
    /* Activates the SerialEchoTask task */
    ActivateTask(AnalogInTask);
@@ -456,10 +449,17 @@ TASK(LedsTask)
     *    Blink Led verde si statusgsm=0
     */
    uint8_t outputs;
+
+#ifdef Test_LedsTask
+
+
    char message5[] = "Tarea LED  \r";
    ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
    /* variables to store input/output status */
    ciaaPOSIX_printf("LEDSTask");
+
+#endif
+
    ciaaPOSIX_read(fd_out, &outputs, 1);
 
    if (statusgsm == 0)
