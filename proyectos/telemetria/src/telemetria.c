@@ -51,8 +51,10 @@
 #include "telemetria.h"         /* <= own header */
 #include "Funciones.h"         /* <= own header */
 /*==================[macros and definitions]=================================*/
-#define Test_DigitalInTask
+#define Test_AnalogInTask
+//#define Test_DigitalInTask
 //#define Test_LedTask
+
 
 /*==================[internal data declaration]==============================*/
 
@@ -118,7 +120,10 @@ static char valor_in[4];
 uint8_t statusgps=0;
 uint8_t statusgsm=0;
 
-
+static int valor_ch1;
+static int valor_ch3;
+static int estado_ch1=0;
+static int estado_ch3=0;
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
@@ -365,11 +370,14 @@ TASK(DigitalInTask)
    if (cambioestado == 1)
    {
 
+/* TEST_1: Visualizo por UART el estado de las salidas*/
+
 #ifdef Test_DigitalInTask
 	   char messageinestado[] = "Estado de las entradas: \r";
 	   ciaaPOSIX_write(fd_uart1, messageinestado, ciaaPOSIX_strlen(messageinestado));
 	   ciaaPOSIX_write(fd_uart1, valor_in, 4);
 #endif
+
 	   /* Genero evento de cambio de estado*/
 	   cambioestado=0;
    }
@@ -410,13 +418,48 @@ TASK(AnalogInTask)
    ciaaPOSIX_read(fd_adc_1, &adc_1, sizeof(adc_1));
 
    //ciaaPOSIX_write(fd_uart1, hr_ciaaDac, ciaaPOSIX_strlen(hr_ciaaDac));
+//   ciaaPOSIX_ioctl(fd_adc_0, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_2);
+//   ciaaPOSIX_read(fd_adc_0, &adc_2, sizeof(adc_2));
 
+   /* Si cambia el valor actual +-40% genero evento*/
 
-   ciaaPOSIX_ioctl(fd_adc_0, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_2);
+   if(adc_1 > (1.4*valor_ch1) || adc_1 < (0.6*valor_ch1))
+   {
+	   estado_ch1=1;
+   }
+   if(adc_3 > (1.4*valor_ch3) || adc_3 < (0.6*valor_ch3))
+   {
+       estado_ch3=1;
+   }
 
+   valor_ch1=adc_1;    // Guardo valor actual
+   valor_ch3=adc_3;
 
-   ciaaPOSIX_read(fd_adc_0, &adc_2, sizeof(adc_2));
+/* TEST_3: Visualizo por UART el estado de las salidas*/
 
+#ifdef Test_AnalogInTask
+   char messageinestado[] = "\r Estado de las entradas analogicas:  ";
+   ciaaPOSIX_write(fd_uart1, messageinestado, ciaaPOSIX_strlen(messageinestado));
+   char str[4];
+   itoa(valor_ch1,str,10);
+   ciaaPOSIX_write(fd_uart1, str,ciaaPOSIX_strlen(str));
+   char messageinestado2[] = "    ";
+   ciaaPOSIX_write(fd_uart1, messageinestado2, ciaaPOSIX_strlen(messageinestado2));
+   itoa(valor_ch3,str,10);
+   ciaaPOSIX_write(fd_uart1, str,ciaaPOSIX_strlen(str));
+   if ((estado_ch1|estado_ch3) == 1)
+   {
+	   char messageinestado1[] = "\r --Evento por cambio de estado!!!  ";
+	   ciaaPOSIX_write(fd_uart1, messageinestado1, ciaaPOSIX_strlen(messageinestado1));
+   }
+#endif
+
+   /*Reset banderas de cambio de estado*/
+   if ((estado_ch1|estado_ch3) == 1)
+   {
+  	   estado_ch1=0;
+  	   estado_ch3=0;
+   }
 
    /* Activates the ModBustask */
    ActivateTask(ModBusTask);
@@ -445,18 +488,24 @@ TASK(LedsTask)
 {
    /*
     * Example:
-    *    Blink Led rojo si statusgps=0
-    *    Blink Led verde si statusgsm=0
+    *    Blink Led rojo si statusgps=0, On Led Rojo si statusgps=1
+    *    Blink Led verde si statusgsm=0, On Led Verde si statusgsm=1
     */
    uint8_t outputs;
 
+   /* TEST_2: Titilo ambos leds 10 veces y luego los dejo fijos*/
 #ifdef Test_LedsTask
 
-
-   char message5[] = "Tarea LED  \r";
-   ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
+//   char message5[] = "Tarea LED  \r";
+//   ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
    /* variables to store input/output status */
-   ciaaPOSIX_printf("LEDSTask");
+//   ciaaPOSIX_printf("LEDSTask");
+
+   if (Periodic_Task_Counter == 20)
+   {
+	   statusgsm=1;
+	   statusgps=1;
+   }
 
 #endif
 
@@ -480,11 +529,6 @@ TASK(LedsTask)
    ciaaPOSIX_write(fd_out, &outputs, 1);
    Periodic_Task_Counter++;
 
-   if (Periodic_Task_Counter == 20)
-   {
-	   statusgsm=1;
-	   statusgps=1;
-   }
 
    /* end LedsTask */
    TerminateTask();

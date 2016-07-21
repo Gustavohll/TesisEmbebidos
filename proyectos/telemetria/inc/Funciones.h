@@ -76,6 +76,7 @@
 /*==================[end of file]============================================*/
 
 void blinkled (void);
+char *itoa(int num, char *str, int radix);
 
 #endif /* #ifndef _BLINKING_H_ */
 
