@@ -236,7 +236,8 @@ TASK(InitTask)
    /* activate example tasks */
    Periodic_Task_Counter = 0;
    SetRelAlarm(ActivateDigitalInTask, 200, 500);  //Cada 500 ms
-   SetRelAlarm(ActivateLedsTask, 100, 300);  //Cada 500 ms
+   SetRelAlarm(ActivateLedsTask, 100, 300);  //Cada 300 ms
+   SetRelAlarm(ActivateGsmTask, 150, 1000);  //Cada 1 s
    /*Contadores a cero*/
    Contador_In1=0;
    Contador_In2=0;
@@ -381,7 +382,6 @@ TASK(DigitalInTask)
 	   /* Genero evento de cambio de estado*/
 	   cambioestado=0;
    }
-   blinkled();
 
    /* Activates the SerialEchoTask task */
    ActivateTask(AnalogInTask);
@@ -530,6 +530,28 @@ TASK(LedsTask)
    Periodic_Task_Counter++;
 
 
+   /* end LedsTask */
+   TerminateTask();
+}
+
+TASK(GsmTask)
+{
+   /*
+    * Example:
+    *
+    */
+	uint8_t outputs;
+
+   /* TEST_2: Titilo ambos leds 10 veces y luego los dejo fijos*/
+#ifdef Test_GsmTask
+
+//   char message5[] = "Tarea LED  \r";
+//   ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
+   /* variables to store input/output status */
+//   ciaaPOSIX_printf("LEDSTask");
+#endif
+
+   blinkled();
    /* end LedsTask */
    TerminateTask();
 }
