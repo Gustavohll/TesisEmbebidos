@@ -554,17 +554,17 @@ TASK(GsmTask)
 			{
 				 RED=0,R_RED,SET,R_SET,SEND,ACKNOLEGE,ERROR,DELAY,ultimo_estado_gsm
 			};
-	portTickType ticker = xTaskGetTickCount();
-	portBASE_TYPE xStatus;
 	char APN[50]="AT+CSTT=\"internet.ctimovil.com.ar\",\"gprs\",\"gprs\"";
 	char IP[50]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\"";
 	char last_position [50]=">RUS04,111222000121;ID=1234567<";
 	char dato_gsm;
-	char CGATT[]="AT+CGATT? \r"
+	char CGATT[]="AT+CGATT? \r";
 	char respuesta[30];
 	int FSM_inicializada=0,i=0,h=0,x=0,delay=0;
 	int estado_gsm;
+	int32_t ret;      /* return value variable for posix calls  */
 
+	/* Estados gsm */
 	if( estado_gsm > ultimo_estado_gsm )
 		{
 			FSM_inicializada = 0;
@@ -576,40 +576,38 @@ TASK(GsmTask)
 		}
 		switch ( estado_gsm )
 		{
-			case RED:                                          // Consulto si hay conexion a la red gsm
+			case RED:                                          				// Consulto si hay conexion a la red gsm
 			{
 				h=0;
 				i=0;
-				ciaaPOSIX_memset(respuesta, 0, ciaaPOSIX_strlen(respuesta));  		//Pongo a cero la cadena
+				ciaaPOSIX_memset(respuesta, 0, ciaaPOSIX_strlen(respuesta));//Pongo a cero la cadena
 				//Serial_flush (UART_2);
-				ciaaPOSIX_write(fd_uart1, CGATT, ciaaPOSIX_strlen(CGATT));   //Consulto si tiene señal gprs
-				//ciaaPOSIX_Serial_printString( UART_2, "AT+CGATT?");
-				//Serial_write(UART_2,'\r');
-	//			Serial_println (UART_2);
-				estado_gsm = R_RED;								//Espero respuesta
+				ciaaPOSIX_write(fd_uart1, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
+				estado_gsm = R_RED;											//Espero respuesta
 				break;
 			}
 
 			case R_RED:
 			{
-				if (Serial_available(UART_2))
+				ret = ciaaPOSIX_read(fd_uart1, dato_gsm, 1);
+				if (ret > 0)
 				{
-					respuesta[i]=Serial_read(UART_2);
-					dato_gsm=respuesta[i];   			// Leo el dato
+					respuesta[i]=dato_gsm;
 					i++;
+					if(i==29) i=0;
 					if (dato_gsm == '\r')  				// si llega Enter detecto fin de respuesta
 					{
 						i=0;
-						if (strncmp(respuesta,"+CGATT: 1",9)==0) // Si tengo red sigo , sino espero 30 segundos y vuelvo a intentar
+						if (ciaaPOSIX_strncmp(respuesta,"+CGATT: 1",9)==0) // Si tengo red sigo , sino espero 30 segundos y vuelvo a intentar
 						{
-							estado_gsm = SET;
-							memset(respuesta, 0, sizeof(respuesta));  // Pongo a cero la cadena
+							//estado_gsm = SET;
+							ciaaPOSIX_memset(respuesta, 0, ciaaPOSIX_strlen(respuesta));  // Pongo a cero la cadena
 							x=0;
 						}
 						else
 						{
-							estado_gsm = ERROR;
-							memset(respuesta, 0, sizeof(respuesta));  // Pongo a cero la cadena
+							//estado_gsm = ERROR;
+							ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Pongo a cero la cadena
 						}
 					}
 				}
@@ -617,7 +615,7 @@ TASK(GsmTask)
 				break;
 			}
 
-			case SET:
+/*			case SET:
 			{
 				x++;
 				Serial_flush (UART_2);								//Limpio Buffer UART
@@ -708,7 +706,7 @@ TASK(GsmTask)
 				if(h==1)Serial_printString( UART_2, "Sin red");
 				if(h==1500) estado_gsm = RED;   //espero 15 segundos y vuelvo a intentar (1500)
 				break;
-			}
+			}*/
 		}
    blinkled();
    /* end LedsTask */
