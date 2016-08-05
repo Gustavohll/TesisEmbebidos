@@ -550,7 +550,166 @@ TASK(GsmTask)
    /* variables to store input/output status */
 //   ciaaPOSIX_printf("LEDSTask");
 #endif
+	enum ESTADOS_GSM
+			{
+				 RED=0,R_RED,SET,R_SET,SEND,ACKNOLEGE,ERROR,DELAY,ultimo_estado_gsm
+			};
+	portTickType ticker = xTaskGetTickCount();
+	portBASE_TYPE xStatus;
+	char APN[50]="AT+CSTT=\"internet.ctimovil.com.ar\",\"gprs\",\"gprs\"";
+	char IP[50]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\"";
+	char last_position [50]=">RUS04,111222000121;ID=1234567<";
+	char dato_gsm;
+	char CGATT[]="AT+CGATT? \r"
+	char respuesta[30];
+	int FSM_inicializada=0,i=0,h=0,x=0,delay=0;
+	int estado_gsm;
 
+	if( estado_gsm > ultimo_estado_gsm )
+		{
+			FSM_inicializada = 0;
+		}
+		if( !FSM_inicializada )
+		{
+			FSM_inicializada = 1;
+			estado_gsm = RED;
+		}
+		switch ( estado_gsm )
+		{
+			case RED:                                          // Consulto si hay conexion a la red gsm
+			{
+				h=0;
+				i=0;
+				ciaaPOSIX_memset(respuesta, 0, ciaaPOSIX_strlen(respuesta));  		//Pongo a cero la cadena
+				//Serial_flush (UART_2);
+				ciaaPOSIX_write(fd_uart1, CGATT, ciaaPOSIX_strlen(CGATT));   //Consulto si tiene señal gprs
+				//ciaaPOSIX_Serial_printString( UART_2, "AT+CGATT?");
+				//Serial_write(UART_2,'\r');
+	//			Serial_println (UART_2);
+				estado_gsm = R_RED;								//Espero respuesta
+				break;
+			}
+
+			case R_RED:
+			{
+				if (Serial_available(UART_2))
+				{
+					respuesta[i]=Serial_read(UART_2);
+					dato_gsm=respuesta[i];   			// Leo el dato
+					i++;
+					if (dato_gsm == '\r')  				// si llega Enter detecto fin de respuesta
+					{
+						i=0;
+						if (strncmp(respuesta,"+CGATT: 1",9)==0) // Si tengo red sigo , sino espero 30 segundos y vuelvo a intentar
+						{
+							estado_gsm = SET;
+							memset(respuesta, 0, sizeof(respuesta));  // Pongo a cero la cadena
+							x=0;
+						}
+						else
+						{
+							estado_gsm = ERROR;
+							memset(respuesta, 0, sizeof(respuesta));  // Pongo a cero la cadena
+						}
+					}
+				}
+	//			estado_gsm = SEND;
+				break;
+			}
+
+			case SET:
+			{
+				x++;
+				Serial_flush (UART_2);								//Limpio Buffer UART
+				if(x==1) Serial_printString( UART_2,APN);
+				if(x==2) Serial_printString( UART_2,"AT+CIICR");
+				if(x==3) Serial_printString( UART_2,"AT+CIFSR");
+				if(x==4) Serial_printString( UART_2,IP);
+				Serial_println (2);
+				if(x<5) estado_gsm = R_SET;
+				if(x==5)estado_gsm = SEND;
+				i=0;
+				memset(respuesta, 0, sizeof(respuesta));  			//Pongo a cero la cadena
+				break;
+			}
+			case R_SET:
+			{
+				if (Serial_available(UART_2))
+				{
+					respuesta[i]=Serial_read(UART_2);
+					i++;
+					if (respuesta[i-1] == '\r')  				// si llega Enter detecto fin de respuesta
+					{
+						i=0;
+						estado_gsm = SET;
+						if (x==1 && !strncmp(respuesta,"OK",2)==0) 			estado_gsm = ERROR;	// Si no es correcta la respuesta salto a error
+						if (x==2 && !strncmp(respuesta,"OK",2)==0) 			estado_gsm = ERROR;
+						if (x==3)								 			estado_gsm = SET;
+						if (x==4 && !strncmp(respuesta,"CONNECT OK",10)==0) estado_gsm = ERROR;
+
+						memset(respuesta, 0, sizeof(respuesta));  // Pongo a cero la cadena
+
+					}
+				}
+				break;
+			}
+			case SEND:
+			{
+				Serial_printString( UART_2, "ACA ENVIO DATOSSSS !!!");
+				Serial_println (2);
+				Serial_printString( UART_2,"AT+CIPSEND=30");
+				Serial_printString( UART_2,last_position);
+				estado_gsm = ACKNOLEGE;
+				delay=0;
+				i=0;
+				break;
+			}
+			case ACKNOLEGE:
+			{
+				delay++;
+				if(delay==1500)
+				{
+					estado_gsm = SEND;   //espero 15 segundos y vuelvo a intentar (1500)
+					Serial_printString( UART_2, "no llego ack reenvio datos !!!");
+					delay=0;
+					break;
+				}
+
+				if (Serial_available(UART_2))
+				{
+					respuesta[i]=Serial_read(UART_2);
+					if (respuesta[i] == '<')							//si llega < detecto fin de comando
+					{
+						i=0;
+						estado_gsm = SET;
+
+						if (!strncmp(respuesta,">ACK<",4)==0)
+						{
+							Serial_printString( UART_2, "Sin red");
+							estado_gsm = SEND;							// Si no es correcta la respuesta salto a error
+							memset(respuesta, 0, sizeof(respuesta));  	// Pongo a cero la cadena
+							delay=0;
+						}
+					}
+					//if (respuesta[i] == '>')		i++;				// Si llega > detecto inicio comando
+				}
+				break;
+			}
+			case ERROR:
+			{
+				h++;
+				if(h==1)Serial_printString( UART_2, "Sin red");
+				if(h==500) estado_gsm = RED;   //espero 30 segundos y vuelvo a intentar (3000)
+				break;
+			}
+			case DELAY:
+			{
+				h++;
+				if(h==1)Serial_printString( UART_2, "Sin red");
+				if(h==1500) estado_gsm = RED;   //espero 15 segundos y vuelvo a intentar (1500)
+				break;
+			}
+		}
    blinkled();
    /* end LedsTask */
    TerminateTask();
