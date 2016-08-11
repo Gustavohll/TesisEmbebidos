@@ -90,7 +90,6 @@ static int32_t fd_uart0;
  * Device path /dev/serial/uart/1
  */
 static int32_t fd_uart1;
-
 /** \brief File descriptor of the RS232 uart
  *
  * Device path /dev/serial/uart/2
@@ -245,7 +244,7 @@ TASK(InitTask)
    Periodic_Task_Counter = 0;
    SetRelAlarm(ActivateDigitalInTask, 200, 500);  //Cada 500 ms
    SetRelAlarm(ActivateLedsTask, 100, 300);  //Cada 300 ms
-   SetRelAlarm(ActivateGsmTask, 150, 1000);  //Cada 1 s
+ //  SetRelAlarm(ActivateGsmTask, 150, 1000);  //Cada 1 s
    /*Contadores a cero*/
    Contador_In1=0;
    Contador_In2=0;
@@ -253,8 +252,8 @@ TASK(InitTask)
    Contador_In4=0;
 
    /* Activates the SerialEchoTask task */
-   ActivateTask(SerialEchoTask);
-
+//   ActivateTask(SerialEchoTask);
+   ActivateTask(GsmTask);
    /* end InitTask */
    TerminateTask();
 }
@@ -282,7 +281,7 @@ TASK(SerialEchoTask)
    while(1)
    {
       /* wait for any character ... */
-      ret = ciaaPOSIX_read(fd_uart0, buf, 20);
+      ret = ciaaPOSIX_read(fd_uart1, buf, 20);
 
       if(ret > 0)
       {
@@ -548,9 +547,7 @@ TASK(GsmTask)
     * Example:
     *
     */
-	uint8_t outputs;
-
-   /* TEST_2: Titilo ambos leds 10 veces y luego los dejo fijos*/
+	/* TEST_2: Titilo ambos leds 10 veces y luego los dejo fijos*/
 #ifdef Test_GsmTask
 
 //   char message5[] = "Tarea LED  \r";
@@ -559,14 +556,21 @@ TASK(GsmTask)
 //   ciaaPOSIX_printf("LEDSTask");
 #endif
 
-	char APN[50]="AT+CSTT=\"internet.ctimovil.com.ar\",\"gprs\",\"gprs\"";
-	char IP[50]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\"";
+	char APN[50]="AT+CSTT=\"internet.ctimovil.com.ar\",\"gprs\",\"gprs\" \r";
+	char IP[50]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\" \r";
 	char last_position [50]=">RUS04,111222000121;ID=1234567<";
-	char dato_gsm;
+	char CIIR[]="AT+CIICR \r";
+	char CIFSR[]="AT+CIFSR \r";
 	char CGATT[]="AT+CGATT? \r";
+	char SINRED[]="SIN RED : ERROR \r";
 	char respuesta[30];
-	int32_t ret;      /* return value variable for posix calls  */
+	int32_t res;      /* return value variable for posix calls  */
+	int8_t dato_gsm[20];
 
+	int8_t buf[20];   /* buffer for uart operation              */
+	uint8_t outputs;  /* to store outputs status                */
+	int32_t ret;      /* return value variable for posix calls  */
+	while (1){
 	/* Estados gsm */
 	if( estado_gsm > ultimo_estado_gsm )
 		{
@@ -592,68 +596,58 @@ TASK(GsmTask)
 
 			case R_RED:
 			{
-				ret = ciaaPOSIX_read(fd_uart1, dato_gsm, 1);
+				ret = ciaaPOSIX_read(fd_uart1, buf, 20);
 				if (ret > 0)
 				{
-					respuesta[i]=dato_gsm;
-					i++;
-					if(i==29) i=0;
-					if (dato_gsm == '\r')  				// si llega Enter detecto fin de respuesta
+					if (ciaaPOSIX_strncmp(buf,"+CGATT: 1",9)==0) // Si tengo red sigo , sino espero 30 segundos y vuelvo a intentar
 					{
-						i=0;
-						if (ciaaPOSIX_strncmp(respuesta,"+CGATT: 1",9)==0) // Si tengo red sigo , sino espero 30 segundos y vuelvo a intentar
-						{
-							//estado_gsm = SET;
-							ciaaPOSIX_memset(respuesta, 0, ciaaPOSIX_strlen(respuesta));  // Pongo a cero la cadena
-							x=0;
-						}
-						else
-						{
-							//estado_gsm = ERROR;
-							ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Pongo a cero la cadena
-						}
+						estado_gsm = SET;
+						x=0;
 					}
+					else
+					{
+						estado_gsm = ERROR;
+					}
+					ciaaPOSIX_memset(buf, 0, sizeof(buf));  // Limpio el buffer
 				}
 	//			estado_gsm = SEND;
 				break;
 			}
 
-/*			case SET:
+			case SET:
 			{
 				x++;
-				Serial_flush (UART_2);								//Limpio Buffer UART
-				if(x==1) Serial_printString( UART_2,APN);
-				if(x==2) Serial_printString( UART_2,"AT+CIICR");
-				if(x==3) Serial_printString( UART_2,"AT+CIFSR");
-				if(x==4) Serial_printString( UART_2,IP);
-				Serial_println (2);
+				//Serial_flush (UART_2);								//Limpio Buffer UART
+				if(x==1) ciaaPOSIX_write(fd_uart1, APN, ciaaPOSIX_strlen(APN));  //Consulto si tiene señal gprs
+				if(x==2) ciaaPOSIX_write(fd_uart1, CIIR, ciaaPOSIX_strlen(CIIR));  //Consulto si tiene señal gprs "AT+CIICR";
+				if(x==3) ciaaPOSIX_write(fd_uart1, CIFSR, ciaaPOSIX_strlen(CIFSR));  //Consulto si tiene señal gprs "AT+CIFSR";
+				if(x==4) ciaaPOSIX_write(fd_uart1, IP, ciaaPOSIX_strlen(IP));  //Consulto si tiene se�al gprs IP);
+			//	Serial_println (2);
 				if(x<5) estado_gsm = R_SET;
 				if(x==5)estado_gsm = SEND;
 				i=0;
-				memset(respuesta, 0, sizeof(respuesta));  			//Pongo a cero la cadena
+				//memset(respuesta, 0, sizeof(respuesta));  			//Pongo a cero la cadena
 				break;
 			}
 			case R_SET:
 			{
-				if (Serial_available(UART_2))
+				ret = ciaaPOSIX_read(fd_uart1, buf, 20);
+				if (ret > 0)
 				{
-					respuesta[i]=Serial_read(UART_2);
-					i++;
-					if (respuesta[i-1] == '\r')  				// si llega Enter detecto fin de respuesta
-					{
-						i=0;
+//					if (buf[ret-1] == '\r')  				// si llega Enter detecto fin de respuesta
+//					{
+						//i=0;
 						estado_gsm = SET;
-						if (x==1 && !strncmp(respuesta,"OK",2)==0) 			estado_gsm = ERROR;	// Si no es correcta la respuesta salto a error
-						if (x==2 && !strncmp(respuesta,"OK",2)==0) 			estado_gsm = ERROR;
-						if (x==3)								 			estado_gsm = SET;
-						if (x==4 && !strncmp(respuesta,"CONNECT OK",10)==0) estado_gsm = ERROR;
+						if (x==1 && !ciaaPOSIX_strncmp(buf,"OK",2)==0) 			estado_gsm = ERROR;	// Si no es correcta la respuesta salto a error
+						if (x==2 && !ciaaPOSIX_strncmp(buf,"OK",2)==0) 			estado_gsm = ERROR;
+						if (x==3)								 				estado_gsm = SET;
+						if (x==4 && !ciaaPOSIX_strncmp(buf,"CONNECT OK",10)==0) estado_gsm = ERROR;
 
 						memset(respuesta, 0, sizeof(respuesta));  // Pongo a cero la cadena
-
-					}
+//					}
 				}
 				break;
-			}
+			}/*
 			case SEND:
 			{
 				Serial_printString( UART_2, "ACA ENVIO DATOSSSS !!!");
@@ -696,13 +690,13 @@ TASK(GsmTask)
 				}
 				break;
 			}
-			case ERROR:
+			*/case ERROR:
 			{
 				h++;
-				if(h==1)Serial_printString( UART_2, "Sin red");
+				if(h==1)ciaaPOSIX_write(fd_uart1, SINRED, ciaaPOSIX_strlen(SINRED));
 				if(h==500) estado_gsm = RED;   //espero 30 segundos y vuelvo a intentar (3000)
 				break;
-			}
+			}/*
 			case DELAY:
 			{
 				h++;
@@ -711,9 +705,9 @@ TASK(GsmTask)
 				break;
 			}*/
 		}
-   blinkled();
-   /* end LedsTask */
-   TerminateTask();
+		blinkled();
+   	   /* end LedsTask */
+	}//TerminateTask();
 }
 /** @} doxygen end group definition */
 /** @} doxygen end group definition */

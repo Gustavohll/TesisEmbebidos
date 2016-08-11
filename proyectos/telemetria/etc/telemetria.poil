@@ -125,16 +125,13 @@ TASK LedsTask {
 }
 
 TASK GsmTask {
-    PRIORITY = 3;
+    PRIORITY = 1;
     ACTIVATION = 1;
     STACK = 512;
     TYPE = EXTENDED;
     SCHEDULE = FULL;
-    RESOURCE = POSIXR;
     EVENT = POSIXE;
-    AUTOSATART = TRUE {
-        APPMODE = AppMode1;
-    }
+    RESOURCE = POSIXR; 
 }
 
 ALARM ActivateDigitalInTask {
@@ -148,13 +145,6 @@ ALARM ActivateLedsTask {
     COUNTER = SoftwareCounter;
     ACTION = ACTIVATETASK {
         TASK = LedsTask;
-    }
-}
-
-ALARM ActivateGsmTask {
-    COUNTER = SoftwareCounter;
-    ACTION = ACTIVATETASK {
-        TASK = GsmTask;
     }
 }
 
