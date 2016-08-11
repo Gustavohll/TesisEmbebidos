@@ -51,7 +51,7 @@
 #include "telemetria.h"         /* <= own header */
 #include "Funciones.h"         /* <= own header */
 /*==================[macros and definitions]=================================*/
-#define Test_AnalogInTask
+//#define Test_AnalogInTask
 //#define Test_DigitalInTask
 //#define Test_LedTask
 
@@ -124,6 +124,14 @@ static int valor_ch1;
 static int valor_ch3;
 static int estado_ch1=0;
 static int estado_ch3=0;
+
+/*==================[Variables Task GSM]===============================*/
+enum ESTADOS_GSM
+			{
+				 RED=0,R_RED,SET,R_SET,SEND,ACKNOLEGE,ERROR,DELAY,ultimo_estado_gsm
+			};
+int estado_gsm;
+int FSM_inicializada=0,i=0,h=0,x=0,delay=0;
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
@@ -550,18 +558,13 @@ TASK(GsmTask)
    /* variables to store input/output status */
 //   ciaaPOSIX_printf("LEDSTask");
 #endif
-	enum ESTADOS_GSM
-			{
-				 RED=0,R_RED,SET,R_SET,SEND,ACKNOLEGE,ERROR,DELAY,ultimo_estado_gsm
-			};
+
 	char APN[50]="AT+CSTT=\"internet.ctimovil.com.ar\",\"gprs\",\"gprs\"";
 	char IP[50]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\"";
 	char last_position [50]=">RUS04,111222000121;ID=1234567<";
 	char dato_gsm;
 	char CGATT[]="AT+CGATT? \r";
 	char respuesta[30];
-	int FSM_inicializada=0,i=0,h=0,x=0,delay=0;
-	int estado_gsm;
 	int32_t ret;      /* return value variable for posix calls  */
 
 	/* Estados gsm */
