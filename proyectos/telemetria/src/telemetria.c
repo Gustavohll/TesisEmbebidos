@@ -131,6 +131,8 @@ enum ESTADOS_GSM
 			};
 int estado_gsm;
 int FSM_inicializada=0,i=0,h=0,x=0,delay=0;
+
+int8_t respuesta[100];
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
@@ -253,7 +255,7 @@ TASK(InitTask)
 
    /* Activates the SerialEchoTask task */
 //   ActivateTask(SerialEchoTask);
-   ActivateTask(GsmTask);
+   ActivateTask(SerialTask);
    /* end InitTask */
    TerminateTask();
 }
@@ -264,20 +266,15 @@ TASK(InitTask)
  * to fd_uart1 and fd_uart2. This taks alos blinkgs the output 5.
  *
  */
-TASK(SerialEchoTask)
+TASK(SerialTask)
 {
    int8_t buf[20];   /* buffer for uart operation              */
    uint8_t outputs;  /* to store outputs status                */
    int32_t ret;      /* return value variable for posix calls  */
+   int i=0;
+   ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  		// Limpio cadena respuesta
+   ciaaPOSIX_memset(buf, 0, sizeof(buf)); 					// Limpio el buffer
 
-   ciaaPOSIX_printf("SerialEchoTask...\n");
-   /* send a message to the world :) */
-   char message[] = "Hi! :)\nSerialEchoTask: Waiting for characters...\n";
-   char message1[] = "Hi! :)\nSerialEchoTask: ESPERAR CARACTERES uart0...\n";
-   char message2[] = "Hi! :)\nSerialEchoTask: ESPERAR CARACTERES uart2...\n";
-   ciaaPOSIX_write(fd_uart0, message1, ciaaPOSIX_strlen(message1));
-   ciaaPOSIX_write(fd_uart1, message, ciaaPOSIX_strlen(message));
-   ciaaPOSIX_write(fd_uart2, message2, ciaaPOSIX_strlen(message2));
    while(1)
    {
       /* wait for any character ... */
@@ -285,20 +282,22 @@ TASK(SerialEchoTask)
 
       if(ret > 0)
       {
-         /* ... and write them to the same device */
-         ciaaPOSIX_write(fd_uart0, buf, ret);
-
          /* also write them to the other device */
          ciaaPOSIX_write(fd_uart1, buf, ret);
+         ciaaPOSIX_strcat(respuesta, buf);			//copio bufer en cadena de respuesta
+         ciaaPOSIX_memset(buf, 0, sizeof(buf)); 	// Limpio el buffer
 
-         /* also write them to the other device */
-         ciaaPOSIX_write(fd_uart2, buf, ret);
+         i=ciaaPOSIX_strlen(respuesta);				//Busco fin de respuesta '\r'
+
+         if (respuesta[i-1] == '\r')
+         {
+        	 ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  		// Limpio cadena respuesta
+         }
+
+
       }
 
-      /* blink output 5 with each loop */
-      ciaaPOSIX_read(fd_out, &outputs, 1);
-      outputs ^= 0x20;
-      ciaaPOSIX_write(fd_out, &outputs, 1);
+
    }
 }
 
@@ -587,8 +586,6 @@ TASK(GsmTask)
 			{
 				h=0;
 				i=0;
-				ciaaPOSIX_memset(respuesta, 0, ciaaPOSIX_strlen(respuesta));//Pongo a cero la cadena
-				//Serial_flush (UART_2);
 				ciaaPOSIX_write(fd_uart1, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
 				estado_gsm = R_RED;											//Espero respuesta
 				break;
@@ -596,7 +593,7 @@ TASK(GsmTask)
 
 			case R_RED:
 			{
-				ret = ciaaPOSIX_read(fd_uart1, buf, 20);
+				//ret = ciaaPOSIX_read(fd_uart1, buf, 20);
 				if (ret > 0)
 				{
 					if (ciaaPOSIX_strncmp(buf,"+CGATT: 1",9)==0) // Si tengo red sigo , sino espero 30 segundos y vuelvo a intentar
@@ -621,7 +618,7 @@ TASK(GsmTask)
 				if(x==1) ciaaPOSIX_write(fd_uart1, APN, ciaaPOSIX_strlen(APN));  //Consulto si tiene señal gprs
 				if(x==2) ciaaPOSIX_write(fd_uart1, CIIR, ciaaPOSIX_strlen(CIIR));  //Consulto si tiene señal gprs "AT+CIICR";
 				if(x==3) ciaaPOSIX_write(fd_uart1, CIFSR, ciaaPOSIX_strlen(CIFSR));  //Consulto si tiene señal gprs "AT+CIFSR";
-				if(x==4) ciaaPOSIX_write(fd_uart1, IP, ciaaPOSIX_strlen(IP));  //Consulto si tiene se�al gprs IP);
+				if(x==4) ciaaPOSIX_write(fd_uart1, IP, ciaaPOSIX_strlen(IP));  //Consulto si tiene se�al gprs IP);
 			//	Serial_println (2);
 				if(x<5) estado_gsm = R_SET;
 				if(x==5)estado_gsm = SEND;

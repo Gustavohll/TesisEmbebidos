@@ -68,8 +68,8 @@ TASK InitTask {
     EVENT = POSIXE;
 }
 
-TASK SerialEchoTask {
-    PRIORITY = 5;
+TASK SerialTask {
+    PRIORITY = 1;
     ACTIVATION = 1;
     STACK = 512;
     TYPE = EXTENDED;
