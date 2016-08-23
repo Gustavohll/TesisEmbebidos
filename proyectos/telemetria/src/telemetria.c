@@ -140,6 +140,8 @@ char last_position [50]=">RUS04,111222000121;ID=1234567<";
 char CIIR[]="AT+CIICR \r";
 char CIFSR[]="AT+CIFSR \r";
 char CGATT[]="AT+CGATT? \r";
+
+char R_CGATT[]="AT+CGATT? \r\r\n+CGATT: 1\r\n\r\nOK\r\n";
 char SINRED[]="SIN RED : ERROR \r";
 /*==================[external data definition]===============================*/
 
@@ -277,86 +279,66 @@ TASK(InitTask)
  */
 TASK(SerialTask)
 {
-   int8_t buf[20];   /* buffer for uart operation              */
+   int8_t buf[2];   /* buffer for uart operation              */
    uint8_t outputs;  /* to store outputs status                */
    int32_t ret;      /* return value variable for posix calls  */
    int i=0;
    ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  		// Limpio cadena respuesta
    ciaaPOSIX_memset(buf, 0, sizeof(buf)); 					// Limpio el buffer
    int estadorespuesta=0;
-   enum ESTADOS_RESPUESTA{ECOCOMANDO=0,R1,R2,R3,PARSEORESPUESTA};
-   int estado_respuesta=0;
    int tipo_comando=0;
+   int x,fin_cadena,respuesta_ok;
 
    while(1)
    {
       /* wait for any character ... */
-      ret = ciaaPOSIX_read(fd_uart2, buf, 20);
+      ret = ciaaPOSIX_read(fd_uart2, buf, 2);
 
       if(ret > 0)
       {
          /* also write them to the other device */
          ciaaPOSIX_write(fd_uart1, buf, ret);
-         ciaaPOSIX_strcat(respuesta, buf);			//copio bufer en cadena de respuesta
+         ciaaPOSIX_strcat(respuesta, buf);			// Copio buffer en cadena de respuesta
+
+//         i=ciaaPOSIX_strlen(respuesta);				// Busco fin de respuesta '\r'
+         for (x=0;x <= ret; x++)
+		 {
+			 if (buf[x] == '\n')	fin_cadena++;	// Busco caracteres que indican fin parcial de respuesta
+		 }
+
          ciaaPOSIX_memset(buf, 0, sizeof(buf)); 	// Limpio el buffer
 
-         i=ciaaPOSIX_strlen(respuesta);				//Busco fin de respuesta '\r'
-
-         if (respuesta[i-1] == '\n')				// detecto caracter que indica fin parcial de respuesta
+         if ((fin_cadena > 0) && (tipo_comando==0))						// Si hay fin parcial de respuesta
          {
-        	 switch(estado_respuesta)
-        	 {
-        	 	 case(ECOCOMANDO):
-				 {
-
-        	 		if (ciaaPOSIX_strncmp(respuesta,CGATT,8)==0)	tipo_comando=1;
-        	 		if (ciaaPOSIX_strncmp(respuesta,APN,8)==0)		tipo_comando=2;
-        	 		if (ciaaPOSIX_strncmp(respuesta,CIIR,8)==0)		tipo_comando=3;
-        	 		if (ciaaPOSIX_strncmp(respuesta,CIFSR,8)==0)	tipo_comando=4;
-        	 		if (ciaaPOSIX_strncmp(respuesta,IP,8)==0)		tipo_comando=5;
-
-        	 		if (tipo_comando>0)
-        	 		{
-        	 			estado_respuesta=R1;  //paso al siguiente estado
-        	 		}else
-        	 		{
-        	 			ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
-        	 		}
-        	 		break;
-				 }
-        	 	case(R1):
+        	 	if (ciaaPOSIX_strncmp(respuesta,CGATT,8)==0)	tipo_comando=1;
+				if (ciaaPOSIX_strncmp(respuesta,APN,8)==0)		tipo_comando=2;
+				if (ciaaPOSIX_strncmp(respuesta,CIIR,8)==0)		tipo_comando=3;
+				if (ciaaPOSIX_strncmp(respuesta,CIFSR,8)==0)	tipo_comando=4;
+				if (ciaaPOSIX_strncmp(respuesta,IP,8)==0)		tipo_comando=5;
+				if (tipo_comando==0)
 				{
-        	 		estado_respuesta=R2;  //paso al siguiente estado
-        	 		break;
+					ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
+					fin_cadena=0;
 				}
-        	 	case(R2):
-				{
-					estado_respuesta=R3;  //paso al siguiente estado
-					break;
-				}
-        	 	case(R3):
-				{
-					estado_respuesta=PARSEORESPUESTA;  //paso al siguiente estado
-					break;
-				}
-        	 	case(PARSEORESPUESTA):
-				{
-        	 		//if (tipo_comando==1 && ciaaPOSIX_strncmp(respuesta,R_CGATT,8)==0)	SETEVENT(R_OK);
-
-
-
-        	 		estado_respuesta=ECOCOMANDO;  //paso al siguiente estado
-					break;
-				}
-
-        	 }
-
          }
 
+		if (fin_cadena==4)
+		{
+			if (ciaaPOSIX_strncmp(respuesta,R_CGATT,30)==0)	respuesta_ok=1;
 
+			if (respuesta_ok==1)
+			{
+				SetEvent(GsmTask, EVENTOK);
+				respuesta_ok=0;
+			}else
+			{
+				SetEvent(GsmTask, EVENTERROR);
+			}
+
+			ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
+			fin_cadena=0;
+		}
       }
-
-
    }
 }
 
@@ -617,7 +599,7 @@ TASK(GsmTask)
 	char respuesta[30];
 	int32_t res;      /* return value variable for posix calls  */
 	int8_t dato_gsm[20];
-
+	EventMaskType Events;
 	int8_t buf[20];   /* buffer for uart operation              */
 	uint8_t outputs;  /* to store outputs status                */
 	int32_t ret;      /* return value variable for posix calls  */
@@ -640,6 +622,19 @@ TASK(GsmTask)
 				i=0;
 				ciaaPOSIX_write(fd_uart2, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
 				estado_gsm = R_RED;											//Espero respuesta
+
+								WaitEvent(EVENTOK | EVENTERROR);
+								GetEvent(GsmTask, &Events);
+								ClearEvent(Events);
+								if (Events & EVENTOK) {
+								 /* do something */
+								i++;
+								}
+								if (Events & EVENTERROR) {
+								 /* do something */
+								i++;
+								}
+
 				TerminateTask();
 				break;
 			}
@@ -647,6 +642,9 @@ TASK(GsmTask)
 			case R_RED:
 			{
 				//ret = ciaaPOSIX_read(fd_uart1, buf, 20);
+
+
+
 				if (ret > 0)
 				{
 					if (ciaaPOSIX_strncmp(buf,"+CGATT: 1",9)==0) // Si tengo red sigo , sino espero 30 segundos y vuelvo a intentar
