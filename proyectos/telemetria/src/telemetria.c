@@ -133,6 +133,14 @@ int estado_gsm;
 int FSM_inicializada=0,i=0,h=0,x=0,delay=0;
 
 int8_t respuesta[100];
+
+char APN[50]="AT+CSTT=\"internet.ctimovil.com.ar\",\"gprs\",\"gprs\" \r";
+char IP[50]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\" \r";
+char last_position [50]=">RUS04,111222000121;ID=1234567<";
+char CIIR[]="AT+CIICR \r";
+char CIFSR[]="AT+CIFSR \r";
+char CGATT[]="AT+CGATT? \r";
+char SINRED[]="SIN RED : ERROR \r";
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
@@ -213,7 +221,7 @@ TASK(InitTask)
 
    /* change baud rate for RS232 */
    /* NEW */
-   ciaaPOSIX_ioctl(fd_uart2, ciaaPOSIX_IOCTL_SET_BAUDRATE, (void *)ciaaBAUDRATE_115200);
+   ciaaPOSIX_ioctl(fd_uart2, ciaaPOSIX_IOCTL_SET_BAUDRATE, (void *)ciaaBAUDRATE_9600);
 
    /* change baud rate for RS485 */
    /* NEW */
@@ -256,6 +264,7 @@ TASK(InitTask)
    /* Activates the SerialEchoTask task */
 //   ActivateTask(SerialEchoTask);
    ActivateTask(SerialTask);
+   ActivateTask(GsmTask);
    /* end InitTask */
    TerminateTask();
 }
@@ -274,11 +283,15 @@ TASK(SerialTask)
    int i=0;
    ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  		// Limpio cadena respuesta
    ciaaPOSIX_memset(buf, 0, sizeof(buf)); 					// Limpio el buffer
+   int estadorespuesta=0;
+   enum ESTADOS_RESPUESTA{ECOCOMANDO=0,R1,R2,R3,PARSEORESPUESTA};
+   int estado_respuesta=0;
+   int tipo_comando=0;
 
    while(1)
    {
       /* wait for any character ... */
-      ret = ciaaPOSIX_read(fd_uart1, buf, 20);
+      ret = ciaaPOSIX_read(fd_uart2, buf, 20);
 
       if(ret > 0)
       {
@@ -289,9 +302,55 @@ TASK(SerialTask)
 
          i=ciaaPOSIX_strlen(respuesta);				//Busco fin de respuesta '\r'
 
-         if (respuesta[i-1] == '\r')
+         if (respuesta[i-1] == '\n')				// detecto caracter que indica fin parcial de respuesta
          {
-        	 ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  		// Limpio cadena respuesta
+        	 switch(estado_respuesta)
+        	 {
+        	 	 case(ECOCOMANDO):
+				 {
+
+        	 		if (ciaaPOSIX_strncmp(respuesta,CGATT,8)==0)	tipo_comando=1;
+        	 		if (ciaaPOSIX_strncmp(respuesta,APN,8)==0)		tipo_comando=2;
+        	 		if (ciaaPOSIX_strncmp(respuesta,CIIR,8)==0)		tipo_comando=3;
+        	 		if (ciaaPOSIX_strncmp(respuesta,CIFSR,8)==0)	tipo_comando=4;
+        	 		if (ciaaPOSIX_strncmp(respuesta,IP,8)==0)		tipo_comando=5;
+
+        	 		if (tipo_comando>0)
+        	 		{
+        	 			estado_respuesta=R1;  //paso al siguiente estado
+        	 		}else
+        	 		{
+        	 			ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
+        	 		}
+        	 		break;
+				 }
+        	 	case(R1):
+				{
+        	 		estado_respuesta=R2;  //paso al siguiente estado
+        	 		break;
+				}
+        	 	case(R2):
+				{
+					estado_respuesta=R3;  //paso al siguiente estado
+					break;
+				}
+        	 	case(R3):
+				{
+					estado_respuesta=PARSEORESPUESTA;  //paso al siguiente estado
+					break;
+				}
+        	 	case(PARSEORESPUESTA):
+				{
+        	 		//if (tipo_comando==1 && ciaaPOSIX_strncmp(respuesta,R_CGATT,8)==0)	SETEVENT(R_OK);
+
+
+
+        	 		estado_respuesta=ECOCOMANDO;  //paso al siguiente estado
+					break;
+				}
+
+        	 }
+
          }
 
 
@@ -555,13 +614,6 @@ TASK(GsmTask)
 //   ciaaPOSIX_printf("LEDSTask");
 #endif
 
-	char APN[50]="AT+CSTT=\"internet.ctimovil.com.ar\",\"gprs\",\"gprs\" \r";
-	char IP[50]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\" \r";
-	char last_position [50]=">RUS04,111222000121;ID=1234567<";
-	char CIIR[]="AT+CIICR \r";
-	char CIFSR[]="AT+CIFSR \r";
-	char CGATT[]="AT+CGATT? \r";
-	char SINRED[]="SIN RED : ERROR \r";
 	char respuesta[30];
 	int32_t res;      /* return value variable for posix calls  */
 	int8_t dato_gsm[20];
@@ -586,8 +638,9 @@ TASK(GsmTask)
 			{
 				h=0;
 				i=0;
-				ciaaPOSIX_write(fd_uart1, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
+				ciaaPOSIX_write(fd_uart2, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
 				estado_gsm = R_RED;											//Espero respuesta
+				TerminateTask();
 				break;
 			}
 
