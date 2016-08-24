@@ -255,8 +255,8 @@ TASK(InitTask)
    /* activate example tasks */
    Periodic_Task_Counter = 0;
    SetRelAlarm(ActivateDigitalInTask, 200, 500); 	// Cada 500 ms
-   SetRelAlarm(ActivateLedsTask, 100, 300);  		// Cada 300 ms
-   //SetRelAlarm(ActivateGsmTask, 1550, 1000);  		// Cada 1 s
+   SetRelAlarm(ActivateLedsTask, 100, 250);  		// Cada 250 ms
+   SetRelAlarm(ActivateGsmTask, 900, 1000);  		// Cada 1 s
    /*Contadores a cero*/
    Contador_In1=0;
    Contador_In2=0;

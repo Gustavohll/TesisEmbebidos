@@ -86,7 +86,7 @@ TASK DigitalInTask {
     SCHEDULE = FULL;
     RESOURCE = POSIXR;
     EVENT = POSIXE;
-    AUTOSATART = TRUE {
+    AUTOSTART = TRUE {
         APPMODE = AppMode1;
     }
 }
@@ -119,7 +119,7 @@ TASK LedsTask {
     SCHEDULE = FULL;
     RESOURCE = POSIXR;
     EVENT = POSIXE;
-    AUTOSATART = TRUE {
+    AUTOSTART = TRUE {
         APPMODE = AppMode1;
     }
 }
@@ -134,9 +134,7 @@ TASK GsmTask {
     EVENT = EVENTOK;
     EVENT = EVENTERROR;
     RESOURCE = POSIXR;
-    AUTOSATART = TRUE {
-        APPMODE = AppMode1;
-    } 
+    AUTOSTART = FALSE;
 }
 
 ALARM ActivateDigitalInTask {
