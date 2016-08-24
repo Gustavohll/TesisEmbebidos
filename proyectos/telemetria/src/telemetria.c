@@ -127,7 +127,7 @@ static int estado_ch3=0;
 /*==================[Variables Task GSM]===============================*/
 enum ESTADOS_GSM
 			{
-				 RED=0,R_RED,SET,R_SET,SEND,ACKNOLEGE,ERROR,DELAY,ultimo_estado_gsm
+				 RED=0,SET,SEND,ACKNOLEGE,ERROR,DELAY,ultimo_estado_gsm
 			};
 int estado_gsm;
 int FSM_inicializada=0,i=0,h=0,x=0,delay=0;
@@ -254,9 +254,9 @@ TASK(InitTask)
 
    /* activate example tasks */
    Periodic_Task_Counter = 0;
-   SetRelAlarm(ActivateDigitalInTask, 200, 500);  //Cada 500 ms
-   SetRelAlarm(ActivateLedsTask, 100, 300);  //Cada 300 ms
- //  SetRelAlarm(ActivateGsmTask, 150, 1000);  //Cada 1 s
+   SetRelAlarm(ActivateDigitalInTask, 200, 500); 	// Cada 500 ms
+   SetRelAlarm(ActivateLedsTask, 100, 300);  		// Cada 300 ms
+   //SetRelAlarm(ActivateGsmTask, 1550, 1000);  		// Cada 1 s
    /*Contadores a cero*/
    Contador_In1=0;
    Contador_In2=0;
@@ -264,17 +264,13 @@ TASK(InitTask)
    Contador_In4=0;
 
    /* Activates the SerialEchoTask task */
-//   ActivateTask(SerialEchoTask);
    ActivateTask(SerialTask);
-   ActivateTask(GsmTask);
    /* end InitTask */
    TerminateTask();
 }
-
-/** \brief Serial Echo Task
+/** \brief Serial Task
  *
- * This tasks waits for input data from fd_uart1 and writes the received data
- * to fd_uart1 and fd_uart2. This taks alos blinkgs the output 5.
+ * Esta tarea espera por datos que ingresen por fd_uart2, detecta si es una respuesta de comando y envia el evento correspondiente.
  *
  */
 TASK(SerialTask)
@@ -589,20 +585,17 @@ TASK(GsmTask)
     */
 	/* TEST_2: Titilo ambos leds 10 veces y luego los dejo fijos*/
 #ifdef Test_GsmTask
-
 //   char message5[] = "Tarea LED  \r";
-//   ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
-   /* variables to store input/output status */
-//   ciaaPOSIX_printf("LEDSTask");
+
 #endif
 
 	char respuesta[30];
-	int32_t res;      /* return value variable for posix calls  */
+	int32_t res;      		/* return value variable for posix calls  */
 	int8_t dato_gsm[20];
 	EventMaskType Events;
-	int8_t buf[20];   /* buffer for uart operation              */
-	uint8_t outputs;  /* to store outputs status                */
-	int32_t ret;      /* return value variable for posix calls  */
+	int8_t buf[20];   		/* buffer for uart operation              */
+	uint8_t outputs;  		/* to store outputs status                */
+	int32_t ret;      		/* return value variable for posix calls  */
 	while (1){
 	/* Estados gsm */
 	if( estado_gsm > ultimo_estado_gsm )
@@ -618,47 +611,12 @@ TASK(GsmTask)
 		{
 			case RED:                                          				// Consulto si hay conexion a la red gsm
 			{
-				h=0;
-				i=0;
 				ciaaPOSIX_write(fd_uart2, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
-				estado_gsm = R_RED;											//Espero respuesta
-
-								WaitEvent(EVENTOK | EVENTERROR);
-								GetEvent(GsmTask, &Events);
-								ClearEvent(Events);
-								if (Events & EVENTOK) {
-								 /* do something */
-								i++;
-								}
-								if (Events & EVENTERROR) {
-								 /* do something */
-								i++;
-								}
-
-				TerminateTask();
-				break;
-			}
-
-			case R_RED:
-			{
-				//ret = ciaaPOSIX_read(fd_uart1, buf, 20);
-
-
-
-				if (ret > 0)
-				{
-					if (ciaaPOSIX_strncmp(buf,"+CGATT: 1",9)==0) // Si tengo red sigo , sino espero 30 segundos y vuelvo a intentar
-					{
-						estado_gsm = SET;
-						x=0;
-					}
-					else
-					{
-						estado_gsm = ERROR;
-					}
-					ciaaPOSIX_memset(buf, 0, sizeof(buf));  // Limpio el buffer
-				}
-	//			estado_gsm = SEND;
+				WaitEvent(EVENTOK | EVENTERROR);							//Espero respuesta
+				GetEvent(GsmTask, &Events);
+				ClearEvent(Events);
+				if (Events & EVENTOK) 	estado_gsm = SET;					//Si tiene red seteo parametros,Sino vuelvo a consultar
+				//if (Events & EVENTERROR)
 				break;
 			}
 
@@ -671,34 +629,23 @@ TASK(GsmTask)
 				if(x==3) ciaaPOSIX_write(fd_uart1, CIFSR, ciaaPOSIX_strlen(CIFSR));  //Consulto si tiene señal gprs "AT+CIFSR";
 				if(x==4) ciaaPOSIX_write(fd_uart1, IP, ciaaPOSIX_strlen(IP));  //Consulto si tiene se�al gprs IP);
 			//	Serial_println (2);
-				if(x<5) estado_gsm = R_SET;
+				if(x<5)
+				{
+					WaitEvent(EVENTOK | EVENTERROR);					//Espero respuesta
+					GetEvent(GsmTask, &Events);
+					ClearEvent(Events);
+					if (Events & EVENTOK) 	x++;						// Si respuesta es correcta envio siguiente comando
+					if (Events & EVENTERROR) estado_gsm = SET;			// Si hay error comienzo nuevamente el ciclo
+				}
+
 				if(x==5)estado_gsm = SEND;
-				i=0;
-				//memset(respuesta, 0, sizeof(respuesta));  			//Pongo a cero la cadena
+				x=0;
 				break;
 			}
-			case R_SET:
-			{
-				ret = ciaaPOSIX_read(fd_uart1, buf, 20);
-				if (ret > 0)
-				{
-//					if (buf[ret-1] == '\r')  				// si llega Enter detecto fin de respuesta
-//					{
-						//i=0;
-						estado_gsm = SET;
-						if (x==1 && !ciaaPOSIX_strncmp(buf,"OK",2)==0) 			estado_gsm = ERROR;	// Si no es correcta la respuesta salto a error
-						if (x==2 && !ciaaPOSIX_strncmp(buf,"OK",2)==0) 			estado_gsm = ERROR;
-						if (x==3)								 				estado_gsm = SET;
-						if (x==4 && !ciaaPOSIX_strncmp(buf,"CONNECT OK",10)==0) estado_gsm = ERROR;
 
-						memset(respuesta, 0, sizeof(respuesta));  // Pongo a cero la cadena
-//					}
-				}
-				break;
-			}/*
 			case SEND:
 			{
-				Serial_printString( UART_2, "ACA ENVIO DATOSSSS !!!");
+/*				Serial_printString( UART_2, "ACA ENVIO DATOSSSS !!!");
 				Serial_println (2);
 				Serial_printString( UART_2,"AT+CIPSEND=30");
 				Serial_printString( UART_2,last_position);
@@ -735,10 +682,10 @@ TASK(GsmTask)
 						}
 					}
 					//if (respuesta[i] == '>')		i++;				// Si llega > detecto inicio comando
-				}
-				break;
 			}
-			*/case ERROR:
+			*/		break;
+			}
+/*			case ERROR:
 			{
 				h++;
 				if(h==1)ciaaPOSIX_write(fd_uart1, SINRED, ciaaPOSIX_strlen(SINRED));

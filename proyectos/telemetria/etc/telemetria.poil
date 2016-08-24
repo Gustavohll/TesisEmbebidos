@@ -133,7 +133,10 @@ TASK GsmTask {
     EVENT = POSIXE;
     EVENT = EVENTOK;
     EVENT = EVENTERROR;
-    RESOURCE = POSIXR; 
+    RESOURCE = POSIXR;
+    AUTOSATART = TRUE {
+        APPMODE = AppMode1;
+    } 
 }
 
 ALARM ActivateDigitalInTask {
@@ -147,6 +150,13 @@ ALARM ActivateLedsTask {
     COUNTER = SoftwareCounter;
     ACTION = ACTIVATETASK {
         TASK = LedsTask;
+    }
+}
+
+ALARM ActivateGsmTask {
+    COUNTER = SoftwareCounter;
+    ACTION = ACTIVATETASK {
+        TASK = GsmTask;
     }
 }
 
