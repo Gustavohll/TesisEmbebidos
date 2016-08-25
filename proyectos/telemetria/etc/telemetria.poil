@@ -133,8 +133,8 @@ TASK GsmTask {
     EVENT = POSIXE;
     EVENT = EVENTOK;
     EVENT = EVENTERROR;
-    RESOURCE = POSIXR;
-    AUTOSTART = FALSE;
+    EVENT = EVENTTIMEOUT;
+    RESOURCE = POSIXR;    
 }
 
 ALARM ActivateDigitalInTask {
@@ -151,11 +151,13 @@ ALARM ActivateLedsTask {
     }
 }
 
-ALARM ActivateGsmTask {
-    COUNTER = SoftwareCounter;
-    ACTION = ACTIVATETASK {
-        TASK = GsmTask;
-    }
+ALARM SetEventTimeOut {
+COUNTER = SoftwareCounter;
+ACTION = SETEVENT {
+TASK = GsmTask;
+EVENT = EVENTTIMEOUT;
+}
+AUTOSTART = FALSE;
 }
 
 RESOURCE = POSIXR;
@@ -163,6 +165,7 @@ RESOURCE = POSIXR;
 EVENT = POSIXE;
 EVENT = EVENTOK;
 EVENT = EVENTERROR;
+EVENT = EVENTTIMEOUT;
 
 APPMODE = AppMode1;
 

@@ -256,7 +256,7 @@ TASK(InitTask)
    Periodic_Task_Counter = 0;
    SetRelAlarm(ActivateDigitalInTask, 200, 500); 	// Cada 500 ms
    SetRelAlarm(ActivateLedsTask, 100, 250);  		// Cada 250 ms
-   SetRelAlarm(ActivateGsmTask, 900, 1000);  		// Cada 1 s
+  // SetRelAlarm(ActivateGsmTask, 900, 1000);  		// Cada 1 s
    /*Contadores a cero*/
    Contador_In1=0;
    Contador_In2=0;
@@ -265,6 +265,7 @@ TASK(InitTask)
 
    /* Activates the SerialEchoTask task */
    ActivateTask(SerialTask);
+   ActivateTask(GsmTask);
    /* end InitTask */
    TerminateTask();
 }
@@ -612,10 +613,18 @@ TASK(GsmTask)
 			case RED:                                          				// Consulto si hay conexion a la red gsm
 			{
 				ciaaPOSIX_write(fd_uart2, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
-				WaitEvent(EVENTOK | EVENTERROR);							//Espero respuesta
+				SetRelAlarm(SetEventTimeOut, 2000, 0);						//Activo time out 2 segundos
+
+				WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				//Espero respuesta
 				GetEvent(GsmTask, &Events);
 				ClearEvent(Events);
-				if (Events & EVENTOK) 	estado_gsm = SET;					//Si tiene red seteo parametros,Sino vuelvo a consultar
+				if (Events & EVENTOK)
+				{
+					estado_gsm = SET;					//Si tiene red seteo parametros,Sino vuelvo a consultar
+					CancelAlarm(SetEventTimeOut);
+				}
+				if (Events & EVENTERROR)	CancelAlarm(SetEventTimeOut);
+
 				//if (Events & EVENTERROR)
 				break;
 			}
