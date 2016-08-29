@@ -142,6 +142,10 @@ char CIFSR[]="AT+CIFSR \r";
 char CGATT[]="AT+CGATT? \r";
 
 char R_CGATT[]="AT+CGATT? \r\r\n+CGATT: 1\r\n\r\nOK\r\n";
+char R_APN[]="AT+CSTT=\"internet.ctimovil.com.ar\",\"gprs\",\"gprs\" \r\r\nOK\r\n";
+char R_CIIR[]="AT+CIICR \r\r\nOK\r\n";
+char R_CIFSR[]="AT+CIFSR \r\r\n";
+char R_IP[]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\" \r\r\nOK\r\nCONNECT OK\r\n";
 char SINRED[]="SIN RED : ERROR \r";
 /*==================[external data definition]===============================*/
 
@@ -285,6 +289,7 @@ TASK(SerialTask)
    int estadorespuesta=0;
    int tipo_comando=0;
    int x,fin_cadena,respuesta_ok;
+   int respuesta_recibida=0;
 
    while(1)
    {
@@ -300,7 +305,7 @@ TASK(SerialTask)
 //         i=ciaaPOSIX_strlen(respuesta);				// Busco fin de respuesta '\r'
          for (x=0;x <= ret; x++)
 		 {
-			 if (buf[x] == '\n')	fin_cadena++;	// Busco caracteres que indican fin parcial de respuesta
+			 if (buf[x] == '\n') fin_cadena++;	// Busco caracteres que indican fin parcial de respuesta
 		 }
 
          ciaaPOSIX_memset(buf, 0, sizeof(buf)); 	// Limpio el buffer
@@ -309,9 +314,9 @@ TASK(SerialTask)
          {
         	 	if (ciaaPOSIX_strncmp(respuesta,CGATT,8)==0)	tipo_comando=1;
 				if (ciaaPOSIX_strncmp(respuesta,APN,8)==0)		tipo_comando=2;
-				if (ciaaPOSIX_strncmp(respuesta,CIIR,8)==0)		tipo_comando=3;
-				if (ciaaPOSIX_strncmp(respuesta,CIFSR,8)==0)	tipo_comando=4;
-				if (ciaaPOSIX_strncmp(respuesta,IP,8)==0)		tipo_comando=5;
+				if (ciaaPOSIX_strncmp(respuesta,CIIR,8)==0)		tipo_comando=2;
+				if (ciaaPOSIX_strncmp(respuesta,CIFSR,8)==0)	tipo_comando=2;
+				if (ciaaPOSIX_strncmp(respuesta,IP,8)==0)		tipo_comando=3;
 				if (tipo_comando==0)
 				{
 					ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
@@ -319,21 +324,39 @@ TASK(SerialTask)
 				}
          }
 
-		if (fin_cadena==4)
+		if ((tipo_comando==1) && (fin_cadena==4))   // Si es un comando del tipo 1, espero 4 /n para detectar fin de respuesta
 		{
-			if (ciaaPOSIX_strncmp(respuesta,R_CGATT,30)==0)	respuesta_ok=1;
+			respuesta_recibida=1;
+			if ((tipo_comando==1) && (ciaaPOSIX_strncmp(respuesta,R_CGATT,sizeof(R_CGATT))==0))	respuesta_ok=1;
+		}
 
+		if ((tipo_comando==2) && (fin_cadena==2))   // Si es un comando del tipo 2, espero 2 /n para detectar fin de respuesta
+		{
+			respuesta_recibida=1;
+			if (ciaaPOSIX_strncmp(respuesta,R_APN,sizeof(R_APN))==0)		respuesta_ok=1;
+			if (ciaaPOSIX_strncmp(respuesta,R_CIIR,sizeof(R_CIIR))==0)		respuesta_ok=1;
+			if (ciaaPOSIX_strncmp(respuesta,R_CIFSR,sizeof(R_CIFSR))==0)	respuesta_ok=1;
+		}
+
+		if ((tipo_comando==3) && (fin_cadena==3))   // Si es un comando del tipo 2, espero 2 /n para detectar fin de respuesta
+		{
+			respuesta_recibida=1;
+			if (ciaaPOSIX_strncmp(respuesta,R_IP,sizeof(R_IP))==0)			respuesta_ok=1;
+		}
+		if (respuesta_recibida==1)   // Si encuentro respuesta, evio evento si es correcta o hay error
+		{
 			if (respuesta_ok==1)
 			{
 				SetEvent(GsmTask, EVENTOK);
-				respuesta_ok=0;
 			}else
 			{
 				SetEvent(GsmTask, EVENTERROR);
 			}
-
+			respuesta_ok=0;
+			respuesta_recibida=0;
 			ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
 			fin_cadena=0;
+			tipo_comando=0;
 		}
       }
    }
@@ -614,41 +637,61 @@ TASK(GsmTask)
 			{
 				ciaaPOSIX_write(fd_uart2, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
 				SetRelAlarm(SetEventTimeOut, 2000, 0);						//Activo time out 2 segundos
-
 				WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				//Espero respuesta
 				GetEvent(GsmTask, &Events);
 				ClearEvent(Events);
 				if (Events & EVENTOK)
 				{
-					estado_gsm = SET;					//Si tiene red seteo parametros,Sino vuelvo a consultar
 					CancelAlarm(SetEventTimeOut);
+					estado_gsm = SET;								//Si tiene red seteo parametros,Sino vuelvo a consultar
+					x=1;
 				}
-				if (Events & EVENTERROR)	CancelAlarm(SetEventTimeOut);
-
-				//if (Events & EVENTERROR)
+				if (Events & EVENTERROR)
+				{
+					CancelAlarm(SetEventTimeOut);
+					SetRelAlarm(SetEventTimeOut, 1000, 0);			//Activo time out 2 segundos
+					WaitEvent(EVENTTIMEOUT);
+					GetEvent(GsmTask, &Events);
+					ClearEvent(Events);
+				}
 				break;
 			}
 
 			case SET:
 			{
-				x++;
-				//Serial_flush (UART_2);								//Limpio Buffer UART
-				if(x==1) ciaaPOSIX_write(fd_uart1, APN, ciaaPOSIX_strlen(APN));  //Consulto si tiene señal gprs
-				if(x==2) ciaaPOSIX_write(fd_uart1, CIIR, ciaaPOSIX_strlen(CIIR));  //Consulto si tiene señal gprs "AT+CIICR";
-				if(x==3) ciaaPOSIX_write(fd_uart1, CIFSR, ciaaPOSIX_strlen(CIFSR));  //Consulto si tiene señal gprs "AT+CIFSR";
-				if(x==4) ciaaPOSIX_write(fd_uart1, IP, ciaaPOSIX_strlen(IP));  //Consulto si tiene se�al gprs IP);
-			//	Serial_println (2);
+				if(x==1) ciaaPOSIX_write(fd_uart2, APN, ciaaPOSIX_strlen(APN)); 	 //Consulto si tiene señal gprs
+				if(x==2) ciaaPOSIX_write(fd_uart2, CIIR, ciaaPOSIX_strlen(CIIR));  	 //Consulto si tiene señal gprs "AT+CIICR";
+				if(x==3) ciaaPOSIX_write(fd_uart2, CIFSR, ciaaPOSIX_strlen(CIFSR));  //Consulto si tiene señal gprs "AT+CIFSR";
+				if(x==4) ciaaPOSIX_write(fd_uart2, IP, ciaaPOSIX_strlen(IP)); 		 //Consulto si tiene se�al gprs IP);
 				if(x<5)
 				{
-					WaitEvent(EVENTOK | EVENTERROR);					//Espero respuesta
+					SetRelAlarm(SetEventTimeOut, 3000, 0);				//Activo time out 2 segundos
+					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);		//Espero respuesta
+					//CancelAlarm(SetEventTimeOut);
 					GetEvent(GsmTask, &Events);
 					ClearEvent(Events);
-					if (Events & EVENTOK) 	x++;						// Si respuesta es correcta envio siguiente comando
-					if (Events & EVENTERROR) estado_gsm = SET;			// Si hay error comienzo nuevamente el ciclo
+					if (Events & EVENTOK)
+					{
+						CancelAlarm(SetEventTimeOut);
+						x++;											// Si respuesta es correcta envio siguiente comando
+					}
+					if (Events & EVENTERROR)
+					{
+						CancelAlarm(SetEventTimeOut);
+						SetRelAlarm(SetEventTimeOut, 1000, 0);			//Activo time out 2 segundos
+						WaitEvent(EVENTTIMEOUT);
+						GetEvent(GsmTask, &Events);
+						ClearEvent(Events);
+						estado_gsm = RED;								// Si hay error comienzo nuevamente el ciclo
+					}
 				}
 
-				if(x==5)estado_gsm = SEND;
-				x=0;
+				if(x==5)
+				{
+					estado_gsm = SEND;
+					x=0;
+				}
+
 				break;
 			}
 
