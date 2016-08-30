@@ -134,7 +134,21 @@ int FSM_inicializada=0,i=0,h=0,x=0,delay=0;
 
 int8_t respuesta[100];
 
-char APN[50]="AT+CSTT=\"internet.ctimovil.com.ar\",\"gprs\",\"gprs\" \r";
+#define Movistar
+//#define Claro
+
+#ifdef Claro
+	char APN[50]="AT+CSTT=\"internet.ctimovil.com.ar\",\"gprs\",\"gprs\" \r";
+	char R_APN[]="AT+CSTT=\"internet.ctimovil.com.ar\",\"gprs\",\"gprs\" \r\r\nOK\r\n";
+#endif
+
+#ifdef Movistar
+	char APN[50]="AT+CSTT=\"m2m.movistar\",\"movistar\",\"movistar\" \r";
+	char R_APN[]="AT+CSTT=\"m2m.movistar\",\"movistar\",\"movistar\" \r\r\nOK\r\n";
+#endif
+//m2m.movistar,movistar,movistar
+//INTERNET.GPRS.UNIFON.COM.AR,WAP,WAP
+
 char IP[50]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\" \r";
 char last_position [50]=">RUS04,111222000121;ID=1234567<";
 char CIIR[]="AT+CIICR \r";
@@ -142,10 +156,10 @@ char CIFSR[]="AT+CIFSR \r";
 char CGATT[]="AT+CGATT? \r";
 
 char R_CGATT[]="AT+CGATT? \r\r\n+CGATT: 1\r\n\r\nOK\r\n";
-char R_APN[]="AT+CSTT=\"internet.ctimovil.com.ar\",\"gprs\",\"gprs\" \r\r\nOK\r\n";
+
 char R_CIIR[]="AT+CIICR \r\r\nOK\r\n";
 char R_CIFSR[]="AT+CIFSR \r\r\n";
-char R_IP[]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\" \r\r\nOK\r\nCONNECT OK\r\n";
+char R_IP[]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\" \r\r\nOK\r\n\r\nCONNECT OK\r\n";
 char SINRED[]="SIN RED : ERROR \r";
 /*==================[external data definition]===============================*/
 
@@ -316,7 +330,7 @@ TASK(SerialTask)
 				if (ciaaPOSIX_strncmp(respuesta,APN,8)==0)		tipo_comando=2;
 				if (ciaaPOSIX_strncmp(respuesta,CIIR,8)==0)		tipo_comando=2;
 				if (ciaaPOSIX_strncmp(respuesta,CIFSR,8)==0)	tipo_comando=2;
-				if (ciaaPOSIX_strncmp(respuesta,IP,8)==0)		tipo_comando=3;
+				if (ciaaPOSIX_strncmp(respuesta,IP,8)==0)		tipo_comando=1;
 				if (tipo_comando==0)
 				{
 					ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
@@ -328,6 +342,7 @@ TASK(SerialTask)
 		{
 			respuesta_recibida=1;
 			if ((tipo_comando==1) && (ciaaPOSIX_strncmp(respuesta,R_CGATT,sizeof(R_CGATT))==0))	respuesta_ok=1;
+			if (ciaaPOSIX_strncmp(respuesta,R_IP,sizeof(R_IP))==0)			respuesta_ok=1;
 		}
 
 		if ((tipo_comando==2) && (fin_cadena==2))   // Si es un comando del tipo 2, espero 2 /n para detectar fin de respuesta
@@ -335,14 +350,9 @@ TASK(SerialTask)
 			respuesta_recibida=1;
 			if (ciaaPOSIX_strncmp(respuesta,R_APN,sizeof(R_APN))==0)		respuesta_ok=1;
 			if (ciaaPOSIX_strncmp(respuesta,R_CIIR,sizeof(R_CIIR))==0)		respuesta_ok=1;
-			if (ciaaPOSIX_strncmp(respuesta,R_CIFSR,sizeof(R_CIFSR))==0)	respuesta_ok=1;
+			if (ciaaPOSIX_strncmp(respuesta,R_CIFSR,8)==0)	respuesta_ok=1;
 		}
 
-		if ((tipo_comando==3) && (fin_cadena==3))   // Si es un comando del tipo 2, espero 2 /n para detectar fin de respuesta
-		{
-			respuesta_recibida=1;
-			if (ciaaPOSIX_strncmp(respuesta,R_IP,sizeof(R_IP))==0)			respuesta_ok=1;
-		}
 		if (respuesta_recibida==1)   // Si encuentro respuesta, evio evento si es correcta o hay error
 		{
 			if (respuesta_ok==1)
