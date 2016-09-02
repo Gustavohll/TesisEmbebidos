@@ -154,6 +154,7 @@ char last_position [50]=">RUS04,111222000121;ID=1234567<";
 char CIIR[]="AT+CIICR \r";
 char CIFSR[]="AT+CIFSR \r";
 char CGATT[]="AT+CGATT? \r";
+char GPS[]="AT \r";
 
 char R_CGATT[]="AT+CGATT? \r\r\n+CGATT: 1\r\n\r\nOK\r\n";
 
@@ -274,7 +275,7 @@ TASK(InitTask)
    Periodic_Task_Counter = 0;
    SetRelAlarm(ActivateDigitalInTask, 200, 500); 	// Cada 500 ms
    SetRelAlarm(ActivateLedsTask, 100, 250);  		// Cada 250 ms
-  // SetRelAlarm(ActivateGsmTask, 900, 1000);  		// Cada 1 s
+   SetRelAlarm(ActivateGpsTask,10000, 5000);  		// Cada 10 s
    /*Contadores a cero*/
    Contador_In1=0;
    Contador_In2=0;
@@ -630,6 +631,7 @@ TASK(GsmTask)
 	int8_t buf[20];   		/* buffer for uart operation              */
 	uint8_t outputs;  		/* to store outputs status                */
 	int32_t ret;      		/* return value variable for posix calls  */
+	x=1;
 	while (1){
 	/* Estados gsm */
 	if( estado_gsm > ultimo_estado_gsm )
@@ -654,7 +656,7 @@ TASK(GsmTask)
 				{
 					CancelAlarm(SetEventTimeOut);
 					estado_gsm = SET;								//Si tiene red seteo parametros,Sino vuelvo a consultar
-					x=1;
+					//x=1;
 				}
 				if (Events & EVENTERROR)
 				{
@@ -699,7 +701,7 @@ TASK(GsmTask)
 				if(x==5)
 				{
 					estado_gsm = SEND;
-					x=0;
+					x=6;
 				}
 
 				break;
@@ -745,7 +747,9 @@ TASK(GsmTask)
 					}
 					//if (respuesta[i] == '>')		i++;				// Si llega > detecto inicio comando
 			}
-			*/		break;
+			*/	TerminateTask();
+
+				break;
 			}
 /*			case ERROR:
 			{
@@ -766,6 +770,23 @@ TASK(GsmTask)
    	   /* end LedsTask */
 	}//TerminateTask();
 }
+
+TASK(GpsTask)
+{
+   /*
+    * Example:
+    *    Read inputs 0..3, update outputs 0..3.
+    *    Blink output 4
+    */
+   char message5[] = "Tarea Mod bus \r";
+ //  ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
+   /* variables to store input/output status */
+   ciaaPOSIX_printf("ModBusTask");
+   ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS));
+   /* end ModBusTask */
+   TerminateTask();
+}
+
 /** @} doxygen end group definition */
 /** @} doxygen end group definition */
 /** @} doxygen end group definition */

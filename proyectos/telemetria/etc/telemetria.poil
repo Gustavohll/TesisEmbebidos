@@ -137,6 +137,17 @@ TASK GsmTask {
     RESOURCE = POSIXR;    
 }
 
+TASK GpsTask {
+    PRIORITY = 10;
+    ACTIVATION = 1;
+    STACK = 512;
+    TYPE = EXTENDED;
+    SCHEDULE = FULL;
+    RESOURCE = POSIXR;
+    EVENT = POSIXE;
+    AUTOSTART = FALSE;
+}
+
 ALARM ActivateDigitalInTask {
     COUNTER = SoftwareCounter;
     ACTION = ACTIVATETASK {
@@ -148,6 +159,14 @@ ALARM ActivateLedsTask {
     COUNTER = SoftwareCounter;
     ACTION = ACTIVATETASK {
         TASK = LedsTask;
+    }
+}
+
+
+ALARM ActivateGpsTask {
+    COUNTER = SoftwareCounter;
+    ACTION = ACTIVATETASK {
+        TASK = GpsTask;
     }
 }
 
