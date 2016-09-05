@@ -149,19 +149,24 @@ int8_t respuesta[100];
 //m2m.movistar,movistar,movistar
 //INTERNET.GPRS.UNIFON.COM.AR,WAP,WAP
 
-char IP[50]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\" \r";
-char last_position [50]=">RUS04,111222000121;ID=1234567<";
+char IP[]="AT+CIPSTART=\"UDP\",\"190.12.119.150\",\"6097\" \r";
+//>RPF041207152350-3460160-05847853000000300FF01;ID=1020;#IP0:00E0;*19<
+
+char last_position []=">RPF041207152350-3460160-05847853000000300FF01;ID=1020;#IP0:00E0;*19< \x1A";
 char CIIR[]="AT+CIICR \r";
 char CIFSR[]="AT+CIFSR \r";
 char CGATT[]="AT+CGATT? \r";
 char GPS[]="AT \r";
+char CIPSEND[]="AT+CIPSEND \r";
+
 
 char R_CGATT[]="AT+CGATT? \r\r\n+CGATT: 1\r\n\r\nOK\r\n";
-
+char R_SAK[]=">SAK;";
 char R_CIIR[]="AT+CIICR \r\r\nOK\r\n";
 char R_CIFSR[]="AT+CIFSR \r\r\n";
-char R_IP[]="AT+CIPSTART=\"UDP\",\"190.12.119.147\",\"6097\" \r\r\nOK\r\n\r\nCONNECT OK\r\n";
-char SINRED[]="SIN RED : ERROR \r";
+char R_IP[]="AT+CIPSTART=\"UDP\",\"190.12.119.150\",\"6097\" \r\r\nOK\r\n\r\nCONNECT OK\r\n";
+char R_CIPSEND[]="AT+CIPSEND \r\r\n";
+//char SINRED[]="SIN RED : ERROR \r";
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
@@ -304,6 +309,7 @@ TASK(SerialTask)
    int estadorespuesta=0;
    int tipo_comando=0;
    int x,fin_cadena,respuesta_ok;
+   int fin_comando=0;
    int respuesta_recibida=0;
 
    while(1)
@@ -321,6 +327,8 @@ TASK(SerialTask)
          for (x=0;x <= ret; x++)
 		 {
 			 if (buf[x] == '\n') fin_cadena++;	// Busco caracteres que indican fin parcial de respuesta
+			 if (buf[x] == '<')
+				 fin_comando++;	// Busco caracteres que indican que llego comando o ACK
 		 }
 
          ciaaPOSIX_memset(buf, 0, sizeof(buf)); 	// Limpio el buffer
@@ -332,6 +340,7 @@ TASK(SerialTask)
 				if (ciaaPOSIX_strncmp(respuesta,CIIR,8)==0)		tipo_comando=2;
 				if (ciaaPOSIX_strncmp(respuesta,CIFSR,8)==0)	tipo_comando=2;
 				if (ciaaPOSIX_strncmp(respuesta,IP,8)==0)		tipo_comando=1;
+				if (ciaaPOSIX_strncmp(respuesta,CIPSEND,8)==0)	tipo_comando=3;
 				if (tipo_comando==0)
 				{
 					ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
@@ -343,17 +352,21 @@ TASK(SerialTask)
 		{
 			respuesta_recibida=1;
 			if ((tipo_comando==1) && (ciaaPOSIX_strncmp(respuesta,R_CGATT,sizeof(R_CGATT))==0))	respuesta_ok=1;
-			if (ciaaPOSIX_strncmp(respuesta,R_IP,sizeof(R_IP))==0)			respuesta_ok=1;
+			if (ciaaPOSIX_strncmp(respuesta,R_IP,sizeof(R_IP))==0)								respuesta_ok=1;
 		}
 
 		if ((tipo_comando==2) && (fin_cadena==2))   // Si es un comando del tipo 2, espero 2 /n para detectar fin de respuesta
 		{
 			respuesta_recibida=1;
-			if (ciaaPOSIX_strncmp(respuesta,R_APN,sizeof(R_APN))==0)		respuesta_ok=1;
-			if (ciaaPOSIX_strncmp(respuesta,R_CIIR,sizeof(R_CIIR))==0)		respuesta_ok=1;
-			if (ciaaPOSIX_strncmp(respuesta,R_CIFSR,8)==0)	respuesta_ok=1;
+			if (ciaaPOSIX_strncmp(respuesta,R_APN,sizeof(R_APN))==0)				respuesta_ok=1;
+			if (ciaaPOSIX_strncmp(respuesta,R_CIIR,sizeof(R_CIIR))==0)				respuesta_ok=1;
+			if (ciaaPOSIX_strncmp(respuesta,R_CIFSR,8)==0)							respuesta_ok=1;
 		}
-
+		if ((tipo_comando==3) && (fin_cadena==1))   // Si es un comando del tipo 3, espero 1 /n para detectar fin de respuesta
+		{
+			respuesta_recibida=1;
+			if (ciaaPOSIX_strncmp(respuesta,R_CIPSEND,sizeof(R_CIPSEND))==0)		respuesta_ok=1;
+		}
 		if (respuesta_recibida==1)   // Si encuentro respuesta, evio evento si es correcta o hay error
 		{
 			if (respuesta_ok==1)
@@ -369,6 +382,14 @@ TASK(SerialTask)
 			fin_cadena=0;
 			tipo_comando=0;
 		}
+		if (fin_comando > 0)   //
+		{
+
+			if (ciaaPOSIX_strncmp(respuesta,R_SAK,sizeof(R_SAK))==0)
+				tipo_comando=4;
+		}
+
+
       }
    }
 }
@@ -679,7 +700,6 @@ TASK(GsmTask)
 				{
 					SetRelAlarm(SetEventTimeOut, 3000, 0);				//Activo time out 2 segundos
 					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);		//Espero respuesta
-					//CancelAlarm(SetEventTimeOut);
 					GetEvent(GsmTask, &Events);
 					ClearEvent(Events);
 					if (Events & EVENTOK)
@@ -709,18 +729,33 @@ TASK(GsmTask)
 
 			case SEND:
 			{
-/*				Serial_printString( UART_2, "ACA ENVIO DATOSSSS !!!");
-				Serial_println (2);
-				Serial_printString( UART_2,"AT+CIPSEND=30");
-				Serial_printString( UART_2,last_position);
-				estado_gsm = ACKNOLEGE;
-				delay=0;
-				i=0;
+				ciaaPOSIX_write(fd_uart2, CIPSEND, ciaaPOSIX_strlen(CIPSEND)); 	// Envio datos
+
+				SetRelAlarm(SetEventTimeOut, 3000, 0);						// Activo time out 2 segundos
+				WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				// Espero respuesta
+				GetEvent(GsmTask, &Events);
+				ClearEvent(Events);
+				if (Events & EVENTOK)
+				{
+					CancelAlarm(SetEventTimeOut);
+					ciaaPOSIX_write(fd_uart2, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
+					estado_gsm = ACKNOLEGE;
+				}
+				if (Events & EVENTERROR)
+				{
+					CancelAlarm(SetEventTimeOut);
+					SetRelAlarm(SetEventTimeOut, 1000, 0);					//Activo time out 2 segundos
+					WaitEvent(EVENTTIMEOUT);
+					GetEvent(GsmTask, &Events);
+					ClearEvent(Events);
+					estado_gsm = RED;										// Si hay error comienzo nuevamente el ciclo
+				}
 				break;
 			}
+
 			case ACKNOLEGE:
 			{
-				delay++;
+/*				delay++;
 				if(delay==1500)
 				{
 					estado_gsm = SEND;   //espero 15 segundos y vuelvo a intentar (1500)
@@ -782,7 +817,7 @@ TASK(GpsTask)
  //  ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
    /* variables to store input/output status */
    ciaaPOSIX_printf("ModBusTask");
-   ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS));
+//   ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS));
    /* end ModBusTask */
    TerminateTask();
 }
