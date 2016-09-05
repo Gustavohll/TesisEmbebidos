@@ -161,7 +161,7 @@ char CIPSEND[]="AT+CIPSEND \r";
 
 
 char R_CGATT[]="AT+CGATT? \r\r\n+CGATT: 1\r\n\r\nOK\r\n";
-char R_SAK[]=">SAK;";
+char R_SAK[]="  \006>SAK;";
 char R_CIIR[]="AT+CIICR \r\r\nOK\r\n";
 char R_CIFSR[]="AT+CIFSR \r\r\n";
 char R_IP[]="AT+CIPSTART=\"UDP\",\"190.12.119.150\",\"6097\" \r\r\nOK\r\n\r\nCONNECT OK\r\n";
@@ -382,11 +382,16 @@ TASK(SerialTask)
 			fin_cadena=0;
 			tipo_comando=0;
 		}
-		if (fin_comando > 0)   //
+		if (fin_comando > 0)   // Si llega un ack o un comando con formato GAP (caracter de inicio > ; caracter de fin <)
 		{
-
-			if (ciaaPOSIX_strncmp(respuesta,R_SAK,sizeof(R_SAK))==0)
-				tipo_comando=4;
+			if (ciaaPOSIX_strncmp(respuesta,R_SAK,8)==0)	tipo_comando=4;  // Si es un ACK
+			if (tipo_comando==4)
+			{
+				SetEvent(GsmTask, EVENTACK);
+				tipo_comando=0;
+			}
+			else
+				fin_comando=0;
 		}
 
 
@@ -755,55 +760,28 @@ TASK(GsmTask)
 
 			case ACKNOLEGE:
 			{
-/*				delay++;
-				if(delay==1500)
+
+				SetRelAlarm(SetEventTimeOut, 15000, 0);						// Activo time out 2 segundos
+				WaitEvent(EVENTACK | EVENTTIMEOUT);							// Espero ACK O TIMEOUT
+				GetEvent(GsmTask, &Events);
+				ClearEvent(Events);
+				if (Events & EVENTACK)
 				{
-					estado_gsm = SEND;   //espero 15 segundos y vuelvo a intentar (1500)
-					Serial_printString( UART_2, "no llego ack reenvio datos !!!");
-					delay=0;
-					break;
+					CancelAlarm(SetEventTimeOut);
+					//////ciaaPOSIX_write(fd_uart1, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
+					TerminateTask();
+					estado_gsm = ACKNOLEGE;
 				}
-
-				if (Serial_available(UART_2))
+				if (Events & EVENTTIMEOUT)
 				{
-					respuesta[i]=Serial_read(UART_2);
-					if (respuesta[i] == '<')							//si llega < detecto fin de comando
-					{
-						i=0;
-						estado_gsm = SET;
-
-						if (!strncmp(respuesta,">ACK<",4)==0)
-						{
-							Serial_printString( UART_2, "Sin red");
-							estado_gsm = SEND;							// Si no es correcta la respuesta salto a error
-							memset(respuesta, 0, sizeof(respuesta));  	// Pongo a cero la cadena
-							delay=0;
-						}
-					}
-					//if (respuesta[i] == '>')		i++;				// Si llega > detecto inicio comando
-			}
-			*/	TerminateTask();
-
+					TerminateTask();
+					estado_gsm = SEND;
+				}
 				break;
 			}
-/*			case ERROR:
-			{
-				h++;
-				if(h==1)ciaaPOSIX_write(fd_uart1, SINRED, ciaaPOSIX_strlen(SINRED));
-				if(h==500) estado_gsm = RED;   //espero 30 segundos y vuelvo a intentar (3000)
-				break;
-			}/*
-			case DELAY:
-			{
-				h++;
-				if(h==1)Serial_printString( UART_2, "Sin red");
-				if(h==1500) estado_gsm = RED;   //espero 15 segundos y vuelvo a intentar (1500)
-				break;
-			}*/
 		}
 		blinkled();
-   	   /* end LedsTask */
-	}//TerminateTask();
+   	}
 }
 
 TASK(GpsTask)
