@@ -149,22 +149,27 @@ int8_t respuesta[100];
 //m2m.movistar,movistar,movistar
 //INTERNET.GPRS.UNIFON.COM.AR,WAP,WAP
 
-char IP[]="AT+CIPSTART=\"UDP\",\"190.12.119.150\",\"6097\" \r";
-//>RPF041207152350-3460160-05847853000000300FF01;ID=1020;#IP0:00E0;*19<
+char IP[]="AT+CIPSTART=\"UDP\",\"131.255.4.29\",\"6097\" \r";
+//char IP[]="AT+CIPSTART=\"UDP\",\"190.12.119.150\",\"6097\" \r";
+//>RPF041207152350-3460160-05847853000000300FF01;ID=1020;#IP0:00E0<
 
-char last_position []=">RPF041207152350-3460160-05847853000000300FF01;ID=1020;#IP0:00E0;*19< \x1A";
+//AT+CIPSTART="UDP","190.12.119.150","6097"
+char last_position []=">RPF041207152350-3460160-05847853000000300FF01;ID=1020;#IP0:00E0< \x1A";
+//char last_position []=">RPF041207152350-3460160-05847853000000300FF01;ID=1020;#IP0:00E0;*19< \x1A";
 char CIIR[]="AT+CIICR \r";
 char CIFSR[]="AT+CIFSR \r";
 char CGATT[]="AT+CGATT? \r";
 char GPS[]="AT \r";
 char CIPSEND[]="AT+CIPSEND \r";
+char finrespuesta[]=" \r\n";
 
 
 char R_CGATT[]="AT+CGATT? \r\r\n+CGATT: 1\r\n\r\nOK\r\n";
-char R_SAK[]="  \006>SAK;";
+// ack street = char R_SAK[]="  \006>SAK;";
+char R_SAK[]=">SAK;";
 char R_CIIR[]="AT+CIICR \r\r\nOK\r\n";
 char R_CIFSR[]="AT+CIFSR \r\r\n";
-char R_IP[]="AT+CIPSTART=\"UDP\",\"190.12.119.150\",\"6097\" \r\r\nOK\r\n\r\nCONNECT OK\r\n";
+char R_IP[]="AT+CIPSTART=\"UDP\",\"131.255.4.29\",\"6097\" \r\r\nOK\r\n\r\nCONNECT OK\r\n";
 char R_CIPSEND[]="AT+CIPSEND \r\r\n";
 //char SINRED[]="SIN RED : ERROR \r";
 /*==================[external data definition]===============================*/
@@ -384,7 +389,7 @@ TASK(SerialTask)
 		}
 		if (fin_comando > 0)   // Si llega un ack o un comando con formato GAP (caracter de inicio > ; caracter de fin <)
 		{
-			if (ciaaPOSIX_strncmp(respuesta,R_SAK,8)==0)	tipo_comando=4;  // Si es un ACK
+			if (ciaaPOSIX_strncmp(respuesta,R_SAK,4)==0)	tipo_comando=4;  // Si es un ACK
 			if (tipo_comando==4)
 			{
 				SetEvent(GsmTask, EVENTACK);
@@ -769,12 +774,14 @@ TASK(GsmTask)
 				{
 					CancelAlarm(SetEventTimeOut);
 					//////ciaaPOSIX_write(fd_uart1, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
+					ciaaPOSIX_write(fd_uart2, finrespuesta, ciaaPOSIX_strlen(finrespuesta)); 	// Caracteres de fin de respuesta, para que se borre buffer de respuesta en tarea serial task
 					TerminateTask();
 					estado_gsm = ACKNOLEGE;
 				}
 				if (Events & EVENTTIMEOUT)
 				{
-					TerminateTask();
+					//TerminateTask();
+					ciaaPOSIX_write(fd_uart2, finrespuesta, ciaaPOSIX_strlen(finrespuesta)); 	// Caracteres de fin de respuesta, para que se borre buffer de respuesta en tarea serial task
 					estado_gsm = SEND;
 				}
 				break;
