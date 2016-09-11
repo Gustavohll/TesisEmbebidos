@@ -159,10 +159,11 @@ char last_position []=">RPF041207152350-3460160-05847853000000300FF01;ID=1020;#I
 char CIIR[]="AT+CIICR \r";
 char CIFSR[]="AT+CIFSR \r";
 char CGATT[]="AT+CGATT? \r";
-char GPS[]="AT \r";
+char GPS[]="AT+CGPSINF=2 \r";
 char CIPSEND[]="AT+CIPSEND \r";
 char finrespuesta[]=" \r\n";
 
+char R_GPS[]="AT+CGPSINF=2 \r\r\n2,000000,0.000000,N,0.000000,E,0,0,0.000000,0.000000,M,0.000000,M,,0000\r\nOK\r\n";
 
 char R_CGATT[]="AT+CGATT? \r\r\n+CGATT: 1\r\n\r\nOK\r\n";
 // ack street = char R_SAK[]="  \006>SAK;";
@@ -285,7 +286,7 @@ TASK(InitTask)
    Periodic_Task_Counter = 0;
    SetRelAlarm(ActivateDigitalInTask, 200, 500); 	// Cada 500 ms
    SetRelAlarm(ActivateLedsTask, 100, 250);  		// Cada 250 ms
-   SetRelAlarm(ActivateGpsTask,10000, 5000);  		// Cada 10 s
+   SetRelAlarm(ActivateGpsTask,10000, 10000);  		// Cada 10 s
    /*Contadores a cero*/
    Contador_In1=0;
    Contador_In2=0;
@@ -327,7 +328,7 @@ TASK(SerialTask)
    while(1)
    {
       /* wait for any character ... */
-      ret = ciaaPOSIX_read(fd_uart2, buf, 2);
+      ret = ciaaPOSIX_read(fd_uart2, buf, 5);
 
       if(ret > 0)
       {
@@ -359,11 +360,11 @@ TASK(SerialTask)
 				 }
 				 case ESPERA_C:
 				 {
-					 if (buf[i] == 'R')
+					 if (buf[i] == 'S')
 					 {
 						 estado_serial=COMANDO; 		//Es un comando
 						 respuesta[0]='>';
-						 respuesta[1]='R';
+						 respuesta[1]='S';
 					 }else
 					 {
 						estado_serial=ESPERA;      //Sino vuelvo a espera
@@ -373,17 +374,18 @@ TASK(SerialTask)
 				case RESPUESTA:
 				{
 					buf_aux[0]=buf[i];
-					ciaaPOSIX_strcat(respuesta, buf_aux);	// Copio buffer en cadena de respuesta
+					ciaaPOSIX_strcat(respuesta, buf_aux);				// Copio buffer en cadena de respuesta
 					if (buf[i] == '\n')
-						fin_cadena++;	// Busco caracteres que indican fin parcial de respuesta
-					if ((fin_cadena > 0) && (tipo_comando==0))						// Si hay fin parcial de respuesta
+						fin_cadena++;									// Busco caracteres que indican fin parcial de respuesta
+					if ((fin_cadena > 0) && (tipo_comando==0))			// Si hay fin parcial de respuesta
 					{
-						if (ciaaPOSIX_strncmp(respuesta,CGATT,8)==0)	tipo_comando=1;
+						if (ciaaPOSIX_strncmp(respuesta,CGATT,8)==0)	tipo_comando=4;
 						if (ciaaPOSIX_strncmp(respuesta,APN,8)==0)		tipo_comando=2;
 						if (ciaaPOSIX_strncmp(respuesta,CIIR,8)==0)		tipo_comando=2;
 						if (ciaaPOSIX_strncmp(respuesta,CIFSR,8)==0)	tipo_comando=2;
-						if (ciaaPOSIX_strncmp(respuesta,IP,8)==0)		tipo_comando=1;
-						if (ciaaPOSIX_strncmp(respuesta,CIPSEND,8)==0)	tipo_comando=3;
+						if (ciaaPOSIX_strncmp(respuesta,IP,8)==0)		tipo_comando=4;
+						if (ciaaPOSIX_strncmp(respuesta,CIPSEND,8)==0)	tipo_comando=1;
+						if (ciaaPOSIX_strncmp(respuesta,GPS,8)==0)		tipo_comando=3;
 						if (tipo_comando==0)
 						{
 							ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
@@ -391,14 +393,11 @@ TASK(SerialTask)
 							estado_serial=ESPERA;      							//Vuelvo a espera
 						}
 					}
-
-					if ((tipo_comando==1) && (fin_cadena==4))   // Si es un comando del tipo 1, espero 4 /n para detectar fin de respuesta
+					if ((tipo_comando==1) && (fin_cadena==1))   // Si es un comando del tipo 1, espero 1 /n para detectar fin de respuesta
 					{
 						respuesta_recibida=1;
-						if ((tipo_comando==1) && (ciaaPOSIX_strncmp(respuesta,R_CGATT,sizeof(R_CGATT))==0))	respuesta_ok=1;
-						if (ciaaPOSIX_strncmp(respuesta,R_IP,sizeof(R_IP))==0)								respuesta_ok=1;
+						if (ciaaPOSIX_strncmp(respuesta,R_CIPSEND,sizeof(R_CIPSEND))==0)		respuesta_ok=1;
 					}
-
 					if ((tipo_comando==2) && (fin_cadena==2))   // Si es un comando del tipo 2, espero 2 /n para detectar fin de respuesta
 					{
 						respuesta_recibida=1;
@@ -406,11 +405,25 @@ TASK(SerialTask)
 						if (ciaaPOSIX_strncmp(respuesta,R_CIIR,sizeof(R_CIIR))==0)				respuesta_ok=1;
 						if (ciaaPOSIX_strncmp(respuesta,R_CIFSR,8)==0)							respuesta_ok=1;
 					}
-					if ((tipo_comando==3) && (fin_cadena==1))   // Si es un comando del tipo 3, espero 1 /n para detectar fin de respuesta
+					if ((tipo_comando==3) && (fin_cadena==3))   // Si es un comando del tipo 3, espero 3 /n para detectar fin de respuesta
+					{
+						//respuesta_recibida=1;
+						if (ciaaPOSIX_strncmp(respuesta,R_GPS,8)==0)
+							{
+							ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
+							respuesta_ok=0;
+							}
+						estado_serial=ESPERA;      							//Vuelvo a espera
+						fin_cadena=0;
+						tipo_comando=0;
+					}
+					if ((tipo_comando==4) && (fin_cadena==4))   // Si es un comando del tipo 4, espero 4 /n para detectar fin de respuesta
 					{
 						respuesta_recibida=1;
-						if (ciaaPOSIX_strncmp(respuesta,R_CIPSEND,sizeof(R_CIPSEND))==0)		respuesta_ok=1;
+						if (ciaaPOSIX_strncmp(respuesta,R_CGATT,sizeof(R_CGATT))==0)	respuesta_ok=1;
+						if (ciaaPOSIX_strncmp(respuesta,R_IP,sizeof(R_IP))==0)								respuesta_ok=1;
 					}
+
 					if (respuesta_recibida==1)   // Si encuentro respuesta, evio evento si es correcta o hay error
 					{
 						estado_serial=ESPERA;      							//Vuelvo a espera
@@ -431,8 +444,9 @@ TASK(SerialTask)
 				}
 				case COMANDO:
 				{
-					ciaaPOSIX_strcat(respuesta, buf[i]);	// Copio buffer en cadena de respuesta
-					if (buf[x] == '<')  fin_comando++;	// Busco caracteres que indican que llego comando o ACK
+					buf_aux[0]=buf[i];
+					ciaaPOSIX_strcat(respuesta, buf_aux);	// Copio buffer en cadena de respuesta
+					if (buf[i] == '<')	fin_comando++;		// Busco caracteres que indican que llego comando o ACK
 
 					if (fin_comando > 0)   // Si llega un ack o un comando con formato GAP (caracter de inicio > ; caracter de fin <)
 					{
@@ -441,9 +455,11 @@ TASK(SerialTask)
 						{
 							SetEvent(GsmTask, EVENTACK);
 							tipo_comando=0;
+							fin_comando=0;
 						}
 						else
 							fin_comando=0;
+						ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
 					}
 				break;
 				}
@@ -736,6 +752,7 @@ TASK(GsmTask)
 				{
 					CancelAlarm(SetEventTimeOut);
 					estado_gsm = SET;								//Si tiene red seteo parametros,Sino vuelvo a consultar
+					statusgsm=1;
 					//x=1;
 				}
 				if (Events & EVENTERROR)
@@ -745,6 +762,7 @@ TASK(GsmTask)
 					WaitEvent(EVENTTIMEOUT);
 					GetEvent(GsmTask, &Events);
 					ClearEvent(Events);
+					statusgsm=0;
 				}
 				break;
 			}
@@ -851,7 +869,7 @@ TASK(GpsTask)
  //  ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
    /* variables to store input/output status */
    ciaaPOSIX_printf("ModBusTask");
-//   ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS));
+   //ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS));
    /* end ModBusTask */
    TerminateTask();
 }
