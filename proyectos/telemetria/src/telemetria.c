@@ -743,9 +743,11 @@ TASK(GsmTask)
 		{
 			case RED:                                          				// Consulto si hay conexion a la red gsm
 			{
+				GetResource(UARTGSM);										//Tomo recurso
 				ciaaPOSIX_write(fd_uart2, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
 				SetRelAlarm(SetEventTimeOut, 2000, 0);						//Activo time out 2 segundos
 				WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				//Espero respuesta
+				ReleaseResource(UARTGSM);									//Libero Recurso
 				GetEvent(GsmTask, &Events);
 				ClearEvent(Events);
 				if (Events & EVENTOK)
@@ -769,6 +771,7 @@ TASK(GsmTask)
 
 			case SET:
 			{
+				GetResource(UARTGSM);												 //Tomo recurso
 				if(x==1) ciaaPOSIX_write(fd_uart2, APN, ciaaPOSIX_strlen(APN)); 	 //Consulto si tiene señal gprs
 				if(x==2) ciaaPOSIX_write(fd_uart2, CIIR, ciaaPOSIX_strlen(CIIR));  	 //Consulto si tiene señal gprs "AT+CIICR";
 				if(x==3) ciaaPOSIX_write(fd_uart2, CIFSR, ciaaPOSIX_strlen(CIFSR));  //Consulto si tiene señal gprs "AT+CIFSR";
@@ -777,6 +780,7 @@ TASK(GsmTask)
 				{
 					SetRelAlarm(SetEventTimeOut, 3000, 0);				//Activo time out 2 segundos
 					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);		//Espero respuesta
+					ReleaseResource(UARTGSM);							//Libero Recurso
 					GetEvent(GsmTask, &Events);
 					ClearEvent(Events);
 					if (Events & EVENTOK)
@@ -806,10 +810,12 @@ TASK(GsmTask)
 
 			case SEND:
 			{
+				GetResource(UARTGSM);											 //Tomo recurso
 				ciaaPOSIX_write(fd_uart2, CIPSEND, ciaaPOSIX_strlen(CIPSEND)); 	// Envio datos
 
 				SetRelAlarm(SetEventTimeOut, 3000, 0);						// Activo time out 2 segundos
 				WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				// Espero respuesta
+				ReleaseResource(UARTGSM);									//Libero Recurso
 				GetEvent(GsmTask, &Events);
 				ClearEvent(Events);
 				if (Events & EVENTOK)
