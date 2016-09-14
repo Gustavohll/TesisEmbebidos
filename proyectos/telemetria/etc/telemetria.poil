@@ -56,7 +56,7 @@ OS	ExampleOS {
 };
 
 TASK InitTask {
-    PRIORITY = 1;
+    PRIORITY = 3;
     ACTIVATION = 1;
     AUTOSTART = TRUE {
         APPMODE = AppMode1;
@@ -69,7 +69,7 @@ TASK InitTask {
 }
 
 TASK SerialTask {
-    PRIORITY = 1;
+    PRIORITY = 10;
     ACTIVATION = 1;
     STACK = 512;
     TYPE = EXTENDED;
@@ -112,7 +112,7 @@ TASK ModBusTask {
 }
 
 TASK LedsTask {
-    PRIORITY = 3;
+    PRIORITY = 5;
     ACTIVATION = 1;
     STACK = 512;
     TYPE = EXTENDED;
@@ -140,13 +140,12 @@ TASK GsmTask {
 }
 
 TASK GpsTask {
-    PRIORITY = 10;
+    PRIORITY = 1;
     ACTIVATION = 1;
     STACK = 512;
     TYPE = EXTENDED;
     SCHEDULE = FULL;
     RESOURCE = POSIXR;
-    RESOURCE = UARTGSM; 
     EVENT = POSIXE;
     AUTOSTART = FALSE;
 }

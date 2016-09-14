@@ -746,6 +746,7 @@ TASK(GsmTask)
 				GetResource(UARTGSM);										//Tomo recurso
 				ciaaPOSIX_write(fd_uart2, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
 				SetRelAlarm(SetEventTimeOut, 2000, 0);						//Activo time out 2 segundos
+				//ReleaseResource(UARTGSM);
 				WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				//Espero respuesta
 				ReleaseResource(UARTGSM);									//Libero Recurso
 				GetEvent(GsmTask, &Events);
