@@ -41,7 +41,6 @@
  ** uart device setting a value of une or more of folowing macros defined
  ** in header file modules/plataforms/x86/inc/ciaaDriverUart_Internal.h
  **/
-
 /*==================[inclusions]=============================================*/
 #include "os.h"               /* <= operating system header */
 #include "ciaaPOSIX_stdio.h"  /* <= device handler header */
@@ -54,8 +53,6 @@
 //#define Test_AnalogInTask
 //#define Test_DigitalInTask
 //#define Test_LedTask
-
-
 /*==================[internal data declaration]==============================*/
 
 /*==================[internal functions declaration]=========================*/
@@ -123,6 +120,9 @@ static int valor_ch1;
 static int valor_ch3;
 static int estado_ch1=0;
 static int estado_ch3=0;
+/*==================[Mutex UART GSM]===============================*/
+
+static uint8_t MutexUartGsm=FALSE;
 
 /*==================[Variables Task GSM]===============================*/
 enum ESTADOS_GSM
@@ -173,6 +173,13 @@ char R_CIFSR[]="AT+CIFSR \r\r\n";
 char R_IP[]="AT+CIPSTART=\"UDP\",\"131.255.4.29\",\"6097\" \r\r\nOK\r\n\r\nCONNECT OK\r\n";
 char R_CIPSEND[]="AT+CIPSEND \r\r\n";
 //char SINRED[]="SIN RED : ERROR \r";
+
+/*==================[Variables Task Gps]===============================*/
+enum ESTADOS_GPS
+			{
+				 CONSULTO=0,LIBERO,ultimo_estado_gps
+			};
+int estado_gps=CONSULTO;
 /*==================[external data definition]===============================*/
 
 /*==================[internal functions definition]==========================*/
@@ -286,7 +293,7 @@ TASK(InitTask)
    Periodic_Task_Counter = 0;
    SetRelAlarm(ActivateDigitalInTask, 200, 500); 	// Cada 500 ms
    SetRelAlarm(ActivateLedsTask, 100, 250);  		// Cada 250 ms
-   SetRelAlarm(ActivateGpsTask,10000, 10000);  		// Cada 10 s
+   SetRelAlarm(ActivateGpsTask,15000, 500);  		// Cada 1 s
    /*Contadores a cero*/
    Contador_In1=0;
    Contador_In2=0;
@@ -407,13 +414,10 @@ TASK(SerialTask)
 					}
 					if ((tipo_comando==3) && (fin_cadena==3))   // Si es un comando del tipo 3, espero 3 /n para detectar fin de respuesta
 					{
-						//respuesta_recibida=1;
-						if (ciaaPOSIX_strncmp(respuesta,R_GPS,8)==0)
-							{
-							ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
-							respuesta_ok=0;
-							}
 						estado_serial=ESPERA;      							//Vuelvo a espera
+						respuesta_ok=0;
+						respuesta_recibida=0;
+						ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
 						fin_cadena=0;
 						tipo_comando=0;
 					}
@@ -528,7 +532,7 @@ TASK(DigitalInTask)
    		   estado_in3=0;
    		   valor_in[2]='0';
    	   }
-      }
+   }
    if ((inputs&0x08) != estado_in4)
    {
 	   cambioestado=1;
@@ -541,10 +545,9 @@ TASK(DigitalInTask)
    		   estado_in4=0;
    		   valor_in[3]='0';
    	   }
-      }
+   }
    if (cambioestado == 1)
    {
-
 /* TEST_1: Visualizo por UART el estado de las salidas*/
 
 #ifdef Test_DigitalInTask
@@ -556,10 +559,8 @@ TASK(DigitalInTask)
 	   /* Genero evento de cambio de estado*/
 	   cambioestado=0;
    }
-
    /* Activates the SerialEchoTask task */
    ActivateTask(AnalogInTask);
-
    /* end PeriodicTask */
    TerminateTask();
 }
@@ -574,8 +575,6 @@ TASK(AnalogInTask)
 //   ciaaPOSIX_write(fd_uart1, message4, ciaaPOSIX_strlen(message4));
    /* variables to store input/output status */
    ciaaPOSIX_printf("task analog");
-
-
    int32_t count;
    uint16_t hr_ciaaDac,adc_1,adc_2,adc_3;
 
@@ -743,51 +742,20 @@ TASK(GsmTask)
 		{
 			case RED:                                          				// Consulto si hay conexion a la red gsm
 			{
-				GetResource(UARTGSM);										//Tomo recurso
-				ciaaPOSIX_write(fd_uart2, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
-				SetRelAlarm(SetEventTimeOut, 2000, 0);						//Activo time out 2 segundos
-				//ReleaseResource(UARTGSM);
-				WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				//Espero respuesta
-				ReleaseResource(UARTGSM);									//Libero Recurso
-				GetEvent(GsmTask, &Events);
-				ClearEvent(Events);
-				if (Events & EVENTOK)
+				if (MutexUartGsm==FALSE)										//Si esta libre el Semaforo uart gsm
 				{
-					CancelAlarm(SetEventTimeOut);
-					estado_gsm = SET;								//Si tiene red seteo parametros,Sino vuelvo a consultar
-					statusgsm=1;
-					//x=1;
-				}
-				if (Events & EVENTERROR)
-				{
-					CancelAlarm(SetEventTimeOut);
-					SetRelAlarm(SetEventTimeOut, 1000, 0);			//Activo time out 2 segundos
-					WaitEvent(EVENTTIMEOUT);
-					GetEvent(GsmTask, &Events);
-					ClearEvent(Events);
-					statusgsm=0;
-				}
-				break;
-			}
-
-			case SET:
-			{
-				GetResource(UARTGSM);												 //Tomo recurso
-				if(x==1) ciaaPOSIX_write(fd_uart2, APN, ciaaPOSIX_strlen(APN)); 	 //Consulto si tiene señal gprs
-				if(x==2) ciaaPOSIX_write(fd_uart2, CIIR, ciaaPOSIX_strlen(CIIR));  	 //Consulto si tiene señal gprs "AT+CIICR";
-				if(x==3) ciaaPOSIX_write(fd_uart2, CIFSR, ciaaPOSIX_strlen(CIFSR));  //Consulto si tiene señal gprs "AT+CIFSR";
-				if(x==4) ciaaPOSIX_write(fd_uart2, IP, ciaaPOSIX_strlen(IP)); 		 //Consulto si tiene se�al gprs IP);
-				if(x<5)
-				{
-					SetRelAlarm(SetEventTimeOut, 3000, 0);				//Activo time out 2 segundos
-					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);		//Espero respuesta
-					ReleaseResource(UARTGSM);							//Libero Recurso
+					MutexUartGsm=TRUE;											//Tomo semaforo
+					ciaaPOSIX_write(fd_uart2, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
+					SetRelAlarm(SetEventTimeOut, 2000, 0);						//Activo time out 2 segundos
+					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				//Espero respuesta
+					MutexUartGsm=FALSE;											//Libero Recurso
 					GetEvent(GsmTask, &Events);
 					ClearEvent(Events);
 					if (Events & EVENTOK)
 					{
 						CancelAlarm(SetEventTimeOut);
-						x++;											// Si respuesta es correcta envio siguiente comando
+						estado_gsm = SET;								//Si tiene red seteo parametros,Sino vuelvo a consultar
+						statusgsm=1;
 					}
 					if (Events & EVENTERROR)
 					{
@@ -796,11 +764,45 @@ TASK(GsmTask)
 						WaitEvent(EVENTTIMEOUT);
 						GetEvent(GsmTask, &Events);
 						ClearEvent(Events);
-						estado_gsm = RED;								// Si hay error comienzo nuevamente el ciclo
+						statusgsm=0;
 					}
 				}
+				break;
+			}
 
-				if(x==5)
+			case SET:
+			{
+				if (MutexUartGsm==FALSE)										//Si esta libre el Semaforo uart gsm
+				{
+					MutexUartGsm=TRUE;												 //Tomo recurso
+					if(x==1) ciaaPOSIX_write(fd_uart2, APN, ciaaPOSIX_strlen(APN)); 	 //Consulto si tiene señal gprs
+					if(x==2) ciaaPOSIX_write(fd_uart2, CIIR, ciaaPOSIX_strlen(CIIR));  	 //Consulto si tiene señal gprs "AT+CIICR";
+					if(x==3) ciaaPOSIX_write(fd_uart2, CIFSR, ciaaPOSIX_strlen(CIFSR));  //Consulto si tiene señal gprs "AT+CIFSR";
+					if(x==4) ciaaPOSIX_write(fd_uart2, IP, ciaaPOSIX_strlen(IP)); 		 //Consulto si tiene se�al gprs IP);
+					if(x<5)
+					{
+						SetRelAlarm(SetEventTimeOut, 3000, 0);				//Activo time out 2 segundos
+						WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);		//Espero respuesta
+						MutexUartGsm=FALSE;							//Libero Recurso
+						GetEvent(GsmTask, &Events);
+						ClearEvent(Events);
+						if (Events & EVENTOK)
+						{
+							CancelAlarm(SetEventTimeOut);
+							x++;											// Si respuesta es correcta envio siguiente comando
+						}
+						if (Events & EVENTERROR)
+						{
+							CancelAlarm(SetEventTimeOut);
+							SetRelAlarm(SetEventTimeOut, 1000, 0);			//Activo time out 2 segundos
+							WaitEvent(EVENTTIMEOUT);
+							GetEvent(GsmTask, &Events);
+							ClearEvent(Events);
+							estado_gsm = RED;								// Si hay error comienzo nuevamente el ciclo
+						}
+					}
+				}
+				if(x>=5)
 				{
 					estado_gsm = SEND;
 					x=6;
@@ -811,28 +813,31 @@ TASK(GsmTask)
 
 			case SEND:
 			{
-				GetResource(UARTGSM);											 //Tomo recurso
-				ciaaPOSIX_write(fd_uart2, CIPSEND, ciaaPOSIX_strlen(CIPSEND)); 	// Envio datos
+				if (MutexUartGsm==FALSE)										//Si esta libre el Semaforo uart gsm
+				{
+					MutexUartGsm=TRUE;											 //Tomo recurso
+					ciaaPOSIX_write(fd_uart2, CIPSEND, ciaaPOSIX_strlen(CIPSEND)); 	// Envio datos
 
-				SetRelAlarm(SetEventTimeOut, 3000, 0);						// Activo time out 2 segundos
-				WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				// Espero respuesta
-				ReleaseResource(UARTGSM);									//Libero Recurso
-				GetEvent(GsmTask, &Events);
-				ClearEvent(Events);
-				if (Events & EVENTOK)
-				{
-					CancelAlarm(SetEventTimeOut);
-					ciaaPOSIX_write(fd_uart2, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
-					estado_gsm = ACKNOLEGE;
-				}
-				if (Events & EVENTERROR)
-				{
-					CancelAlarm(SetEventTimeOut);
-					SetRelAlarm(SetEventTimeOut, 1000, 0);					//Activo time out 2 segundos
-					WaitEvent(EVENTTIMEOUT);
+					SetRelAlarm(SetEventTimeOut, 3000, 0);						// Activo time out 2 segundos
+					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				// Espero respuesta
+					MutexUartGsm=FALSE;									//Libero Recurso
 					GetEvent(GsmTask, &Events);
 					ClearEvent(Events);
-					estado_gsm = RED;										// Si hay error comienzo nuevamente el ciclo
+					if (Events & EVENTOK)
+					{
+						CancelAlarm(SetEventTimeOut);
+						ciaaPOSIX_write(fd_uart2, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
+						estado_gsm = ACKNOLEGE;
+					}
+					if (Events & EVENTERROR)
+					{
+						CancelAlarm(SetEventTimeOut);
+						SetRelAlarm(SetEventTimeOut, 1000, 0);					//Activo time out 2 segundos
+						WaitEvent(EVENTTIMEOUT);
+						GetEvent(GsmTask, &Events);
+						ClearEvent(Events);
+						estado_gsm = RED;										// Si hay error comienzo nuevamente el ciclo
+					}
 				}
 				break;
 			}
@@ -872,15 +877,53 @@ TASK(GpsTask)
     *    Read inputs 0..3, update outputs 0..3.
     *    Blink output 4
     */
-   char message5[] = "Tarea Mod bus \r";
- //  ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
-   /* variables to store input/output status */
-   ciaaPOSIX_printf("ModBusTask");
-   //ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS));
-   /* end ModBusTask */
+	switch ( estado_gps )
+	 {
+		 case CONSULTO:
+		 {
+			 if (MutexUartGsm==FALSE)									//Si esta libre el Semaforo uart gsm
+			 {
+				 MutexUartGsm=TRUE;
+				 ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS)); //Consulto posicion
+				 estado_gps=LIBERO;
+			 }
+			 break;
+		 }
+		 case LIBERO:
+		 {
+			 MutexUartGsm=FALSE;										//Libero Recurso
+			 estado_gps=CONSULTO;
+			 break;
+		 }
+	 }
+
+/*
+	if (MutexUartGsm==FALSE)									//Si esta libre el Semaforo uart gsm
+	{
+		MutexUartGsm=TRUE;
+		ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS));
+		SetRelAlarm(SetEventTimeOutGps, 300, 0);					//Activo time out 2 segundos
+		WaitEvent(EVENTOKGPS | EVENTERRORGPS | EVENTTIMEOUTGPS);			//Espero respuesta
+		GetEvent(GpsTask, &Events);
+		ClearEvent(Events);
+		if ((Events & EVENTOK)||(Events & EVENTERROR))
+			CancelAlarm(SetEventTimeOutGps);
+		MutexUartGsm=FALSE;										//Libero Recurso
+	}
+*/
    TerminateTask();
 }
 
+TASK(EventTask)
+{
+   /*
+    * Example:
+    *    Read inputs 0..3, update outputs 0..3.
+    *    Blink output 4
+    */
+
+   TerminateTask();
+}
 /** @} doxygen end group definition */
 /** @} doxygen end group definition */
 /** @} doxygen end group definition */
