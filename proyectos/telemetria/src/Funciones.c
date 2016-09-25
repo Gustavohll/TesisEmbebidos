@@ -72,6 +72,7 @@
 #include "ciaaPOSIX_string.h" /* <= string header */
 #include "ciaak.h"            /* <= ciaa kernel header */
 #include "telemetria.h"         /* <= own header */
+#include "Funciones.h"         /* <= own header */
 
 /*==================[macros and definitions]=================================*/
 
@@ -137,4 +138,110 @@ char *itoa(int num, char *str, int radix) {
 
     return str;
 }
+
+/*==================[Funcion STRTOK]============================================*/
+char *strtok(char * str, const char * delim)
+{
+    static char* p=0;
+    if(str)
+        p=str;
+    else if(!p)
+        return 0;
+    str=p+strspn(p,delim);
+    p=str+strcspn(str,delim);
+    if(p==str)
+        return p=0;
+    p = *p ? *p=0,p+1 : 0;
+    return str;
+}
+
+/*==================[Funcion STRTOK]============================================*/
+int8_t *intstrtok(int8_t * str, const int8_t * delim)
+{
+    static int8_t* p=0;
+    if(str)
+        p=str;
+    else if(!p)
+        return 0;
+    str=p+strspn(p,delim);
+    p=str+strcspn(str,delim);
+    if(p==str)
+        return p=0;
+    p = *p ? *p=0,p+1 : 0;
+    return str;
+}
+/*==================[Funcion ATOI]============================================*/
+// A simple atoi() function
+int atoi(char *str)
+{
+    int res = 0; // Initialize result
+
+    // Iterate through all characters of input string and
+    // update result
+    int i;
+    for (i=0; str[i] != '\0'; i++)
+        res = res*10 + str[i] - '0';
+
+    // return result.
+    return res;
+}
+
+/*==================[Funcion ATOI]============================================*/
+
+double Myatof(char *str){
+
+int len=0, n=0,i=0;
+float f=1.0,val=0.0;
+
+//counting length of String
+while(str[len])len++;
+//cheking for valid string
+if(!len)return 0;
+
+//Extracting Integer  part
+while(i<len && str[i]!='.')
+    n=10*n +(str[i++]-'0');
+
+//checking if only Integer
+if(i==len) return n;
+i++;
+while(i<len)
+{
+    f*=0.1;
+    val+=f*(str[i++]-'0');
+    }
+    return(val+n);
+}
+/*==================[Funciones Parseo datos GPS]============================================*/
+
+void formato_respuesta(struct DATOS_POSICION * p)
+{
+	char CGPS[]="AT+CGPSINF=2 \r";
+	char *pch;
+	double aux1,aux2;
+	int8_t respuesta1[]="AT+CGPSINF=2\r\r\n2,180231,3437.130250,S,5824.354484,W,1,7,1.348750,45.631660,M,14.588299,M,,0000\r\nOK\r";
+	pch = strtok(respuesta1,",");       // Tokenizamos (troceamos) la respuesta que tenemos en el array respuesta por las comas
+									   // y el primer intervalo lo guardamos en pch (puntero char)
+    //Analizamos ese intervalo guardado en pch para ver si es la respuesta que necesitamos
+	if (ciaaPOSIX_strncmp(pch,CGPS,8)==0)
+	//if (strcmp(pch,"2")==0)           // Si es la correcta, seguimos adelante
+    {
+        pch = strtok (NULL, ",");     		 // Pasamos al siguiente intervalo cortado de la respuesta
+        p->hora = atoi(pch);			 		 // Guardo la parte entera del TIEMPO
+        pch = strtok (NULL, ".");
+        p->Lat = atoi(pch);
+        pch = strtok (NULL, ",");
+        p->DecLat = atoi(pch);
+        pch = strtok (NULL, ",");
+        pch = strtok (NULL, ".");
+        p->Long = atoi(pch);
+        pch = strtok (NULL, ",");
+        p->DecLong = atoi(pch);
+        pch = strtok (NULL, ",");
+        pch = strtok (NULL, ",");
+        p->validity = *pch;		 			 // Guardo si la posicion es valida (A) o no (V)
+    }
+    return;
+}
+
 

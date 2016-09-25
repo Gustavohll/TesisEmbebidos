@@ -71,6 +71,25 @@
 /*==================[external functions declaration]=========================*/
 int32_t fd_out;   // no es static , porque sino no funciona, ver????
 
+
+int8_t respuesta[100];
+
+
+static struct DATOS_POSICION
+{
+	long fecha;
+	long hora;
+	long Lat;
+	long DecLat;
+	long Long;
+	long DecLong;
+	int8_t validity;
+	int Digital_In;
+	int ADC1;
+	int ADC2;
+	float Modbus;
+} pos_data;
+
 /** @} doxygen end group definition */
 /** @} doxygen end group definition */
 /** @} doxygen end group definition */

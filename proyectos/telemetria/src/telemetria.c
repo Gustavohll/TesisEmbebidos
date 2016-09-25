@@ -132,8 +132,6 @@ enum ESTADOS_GSM
 int estado_gsm;
 int FSM_inicializada=0,i=0,h=0,x=0,delay=0;
 
-int8_t respuesta[100];
-
 #define Movistar
 //#define Claro
 
@@ -181,6 +179,7 @@ enum ESTADOS_GPS
 			};
 int estado_gps=CONSULTO;
 /*==================[external data definition]===============================*/
+
 
 /*==================[internal functions definition]==========================*/
 
@@ -327,6 +326,7 @@ TASK(SerialTask)
    int respuesta_recibida=0;
    int inicio_respuesta=0;
    int inicio_comando=0;
+   char *pch;
    enum ESTADOS_SERIAL
    			{
    				 ESPERA=0,ESPERA_R,ESPERA_C,RESPUESTA,COMANDO,ultimo_estado_gsm
@@ -415,6 +415,15 @@ TASK(SerialTask)
 					if ((tipo_comando==3) && (fin_cadena==3))   // Si es un comando del tipo 3, espero 3 /n para detectar fin de respuesta
 					{
 						estado_serial=ESPERA;      							//Vuelvo a espera
+						formato_respuesta(&pos_data);			    		//Parseo datos de la respuesta
+
+					  /*		char str[10];
+								itoa(pos_data.hora,str,10);
+								ciaaPOSIX_write(fd_uart1, str, sizeof(str));
+								itoa(pos_data.Lat,str,10);
+						        ciaaPOSIX_write(fd_uart1, str, sizeof(str));
+						       // ciaaPOSIX_write(fd_uart1, pos_data.NS, sizeof(pos_data.NS));
+					 */
 						respuesta_ok=0;
 						respuesta_recibida=0;
 						ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
