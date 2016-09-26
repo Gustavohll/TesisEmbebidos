@@ -158,11 +158,12 @@ char CIIR[]="AT+CIICR \r";
 char CIFSR[]="AT+CIFSR \r";
 char CGATT[]="AT+CGATT? \r";
 char GPS[]="AT+CGPSINF=2 \r";
+char GPS_2[]="AT+CGPSINF=128 \r";
 char CIPSEND[]="AT+CIPSEND \r";
 char finrespuesta[]=" \r\n";
 
 char R_GPS[]="AT+CGPSINF=2 \r\r\n2,000000,0.000000,N,0.000000,E,0,0,0.000000,0.000000,M,0.000000,M,,0000\r\nOK\r\n";
-
+char R_GPS_2[]="AT+CGPSINF=128 \r\r\n128,180255.000,19,09,2016,00,00\r\nOK\r\n";
 char R_CGATT[]="AT+CGATT? \r\r\n+CGATT: 1\r\n\r\nOK\r\n";
 // ack street = char R_SAK[]="  \006>SAK;";
 char R_SAK[]=">SAK;";
@@ -178,6 +179,7 @@ enum ESTADOS_GPS
 				 CONSULTO=0,LIBERO,ultimo_estado_gps
 			};
 int estado_gps=CONSULTO;
+int i_gps=0;
 /*==================[external data definition]===============================*/
 
 
@@ -893,7 +895,15 @@ TASK(GpsTask)
 			 if (MutexUartGsm==FALSE)									//Si esta libre el Semaforo uart gsm
 			 {
 				 MutexUartGsm=TRUE;
-				 ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS)); //Consulto posicion
+				 if (i_gps==10)
+				 {
+					 ciaaPOSIX_write(fd_uart2, GPS_2, ciaaPOSIX_strlen(GPS_2)); //Consulto posicion
+					 i_gps=0;
+				 }else
+				 {
+					 ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS)); //Consulto Fecha
+					 i_gps++;
+				 }
 				 estado_gps=LIBERO;
 			 }
 			 break;

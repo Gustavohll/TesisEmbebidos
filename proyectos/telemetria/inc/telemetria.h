@@ -77,7 +77,9 @@ int8_t respuesta[100];
 
 static struct DATOS_POSICION
 {
-	long fecha;
+	int dia;
+	int mes;
+	int anio;
 	long hora;
 	long Lat;
 	long DecLat;

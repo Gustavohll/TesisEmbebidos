@@ -217,13 +217,16 @@ while(i<len)
 void formato_respuesta(struct DATOS_POSICION * p)
 {
 	char CGPS[]="AT+CGPSINF=2 \r";
+	char CGPS_2[]="AT+CGPSINF=128 \r";
 	char *pch;
 	double aux1,aux2;
-	int8_t respuesta1[]="AT+CGPSINF=2\r\r\n2,180231,3437.130250,S,5824.354484,W,1,7,1.348750,45.631660,M,14.588299,M,,0000\r\nOK\r";
-	pch = strtok(respuesta1,",");       // Tokenizamos (troceamos) la respuesta que tenemos en el array respuesta por las comas
+//	int8_t respuesta1[]="AT+CGPSINF=2\r\r\n2,180231,3437.130250,S,5824.354484,W,1,7,1.348750,45.631660,M,14.588299,M,,0000\r\nOK\r";
+//	int8_t respuesta1[]="AT+CGPSINF=128 \r\r\n128,180255.000,19,09,2016,00,00\r\nOK\r\n";
+
+	pch = strtok(respuesta,",");       // Tokenizamos (troceamos) la respuesta que tenemos en el array respuesta por las comas
 									   // y el primer intervalo lo guardamos en pch (puntero char)
     //Analizamos ese intervalo guardado en pch para ver si es la respuesta que necesitamos
-	if (ciaaPOSIX_strncmp(pch,CGPS,8)==0)
+	if (ciaaPOSIX_strncmp(pch,CGPS,12)==0)
 	//if (strcmp(pch,"2")==0)           // Si es la correcta, seguimos adelante
     {
         pch = strtok (NULL, ",");     		 // Pasamos al siguiente intervalo cortado de la respuesta
@@ -239,8 +242,18 @@ void formato_respuesta(struct DATOS_POSICION * p)
         p->DecLong = atoi(pch);
         pch = strtok (NULL, ",");
         pch = strtok (NULL, ",");
-        p->validity = *pch;		 			 // Guardo si la posicion es valida (A) o no (V)
+        p->validity = atoi(pch);		 			 // Guardo si la posicion es valida (A) o no (V)
     }
+	if (ciaaPOSIX_strncmp(pch,CGPS_2,14)==0)
+	{
+		pch = strtok (NULL, ",");     		 // Pasamos al siguiente intervalo cortado de la respuesta
+		pch = strtok (NULL, ",");
+		p->dia = atoi(pch);			 	 // Guardo el dia
+		pch = strtok (NULL, ",");
+		p->mes = atoi(pch);			 	 // Guardo el mes
+		pch = strtok (NULL, ",");
+		p->anio = atoi(pch);			 	 // Guardo el año
+	}
     return;
 }
 
