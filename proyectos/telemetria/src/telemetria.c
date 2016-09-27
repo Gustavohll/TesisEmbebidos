@@ -418,7 +418,7 @@ TASK(SerialTask)
 					{
 						estado_serial=ESPERA;      							//Vuelvo a espera
 						formato_respuesta(&pos_data);			    		//Parseo datos de la respuesta
-
+						genero_paquete(pos_data);
 					  /*		char str[10];
 								itoa(pos_data.hora,str,10);
 								ciaaPOSIX_write(fd_uart1, str, sizeof(str));

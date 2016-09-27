@@ -81,6 +81,8 @@ char *strtok(char * str, const char * delim);
 int8_t *intstrtok(int8_t * str, const int8_t * delim);
 int atoi(char *str);
 void formato_respuesta(struct DATOS_POSICION * p);
+void genero_paquete(struct DATOS_POSICION p);
+
 double Myatof(char *str);
 
 

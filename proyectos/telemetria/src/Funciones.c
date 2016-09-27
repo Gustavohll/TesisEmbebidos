@@ -243,6 +243,9 @@ void formato_respuesta(struct DATOS_POSICION * p)
         pch = strtok (NULL, ",");
         pch = strtok (NULL, ",");
         p->validity = atoi(pch);		 			 // Guardo si la posicion es valida (A) o no (V)
+
+        p->hora = 112233;
+        p->anio = 2016;
     }
 	if (ciaaPOSIX_strncmp(pch,CGPS_2,14)==0)
 	{
@@ -255,6 +258,24 @@ void formato_respuesta(struct DATOS_POSICION * p)
 		p->anio = atoi(pch);			 	 // Guardo el año
 	}
     return;
+}
+
+/*==================[Funciones Parseo datos GPS]============================================*/
+
+void genero_paquete(struct DATOS_POSICION p)
+{
+	char paq[200];
+	char str[10];
+	itoa(p.hora,str,10);
+	ciaaPOSIX_strcat(paq, str);				// Copio hora en paquete
+	itoa(p.dia,str,10);
+	ciaaPOSIX_strcat(paq, str);				// Copio hora en paquete
+	itoa(p.mes,str,10);
+	ciaaPOSIX_strcat(paq, str);				// Copio hora en paquete
+	itoa(p.anio,str,10);
+	ciaaPOSIX_strcat(paq, str);				// Copio hora en paquete
+return;
+
 }
 
 
