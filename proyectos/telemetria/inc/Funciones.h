@@ -83,8 +83,8 @@ int atoi(char *str);
 void formato_respuesta(struct DATOS_POSICION * p);
 void genero_paquete(struct DATOS_POSICION p);
 
-double Myatof(char *str);
-
+void put(struct DATOS_POSICION d);
+void get(void);
 
 #endif /* #ifndef _BLINKING_H_ */
 

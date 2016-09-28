@@ -73,7 +73,10 @@ int32_t fd_out;   // no es static , porque sino no funciona, ver????
 
 
 int8_t respuesta[100];
+#define MAX_SIZE 10
 
+static int cola = 0;
+static int cabeza = 0;
 
 static struct DATOS_POSICION
 {
@@ -90,7 +93,7 @@ static struct DATOS_POSICION
 	int ADC1;
 	int ADC2;
 	float Modbus;
-} pos_data;
+} pos_data,send_data,log_data[MAX_SIZE];
 
 /** @} doxygen end group definition */
 /** @} doxygen end group definition */
