@@ -80,8 +80,9 @@ char *itoa(int num, char *str, int radix);
 char *strtok(char * str, const char * delim);
 int8_t *intstrtok(int8_t * str, const int8_t * delim);
 int atoi(char *str);
-void formato_respuesta(struct DATOS_POSICION * p);
-void genero_paquete(struct DATOS_POSICION p);
+void Guardo_posicion(struct DATOS_POSICION * p);
+
+void genero_paquete(struct DATOS_POSICION p,char *paq);
 
 void put(struct DATOS_POSICION d);
 void get(void);

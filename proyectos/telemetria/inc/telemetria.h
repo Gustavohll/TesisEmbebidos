@@ -74,10 +74,12 @@ int32_t fd_out;   // no es static , porque sino no funciona, ver????
 
 int8_t respuesta[100];
 #define MAX_SIZE 10
-
+#define TIME_POSITION 60
 static int cola = 0;
 static int cabeza = 0;
-
+static int ITEMS=0;
+static int Send_Event=0;
+static char paquete[200];
 static struct DATOS_POSICION
 {
 	int dia;
@@ -89,7 +91,10 @@ static struct DATOS_POSICION
 	long Long;
 	long DecLong;
 	int8_t validity;
-	int Digital_In;
+	int IN1;
+	int IN2;
+	int IN3;
+	int IN4;
 	int ADC1;
 	int ADC2;
 	float Modbus;

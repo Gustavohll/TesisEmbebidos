@@ -180,6 +180,7 @@ enum ESTADOS_GPS
 			};
 int estado_gps=CONSULTO;
 int i_gps=0;
+int time_event_position=0;
 /*==================[external data definition]===============================*/
 
 
@@ -417,10 +418,10 @@ TASK(SerialTask)
 					if ((tipo_comando==3) && (fin_cadena==3))   // Si es un comando del tipo 3, espero 3 /n para detectar fin de respuesta
 					{
 						estado_serial=ESPERA;      							//Vuelvo a espera
-						formato_respuesta(&pos_data);			    		//Parseo datos de la respuesta
-						genero_paquete(pos_data);
-						put(pos_data);
-						get();
+						Guardo_datos_posicion(&pos_data);			    	//Parseo datos de la respuesta y los guardo
+				//		genero_paquete(send_data);
+				//		put(pos_data);
+				//		get();
 					  /*		char str[10];
 								itoa(pos_data.hora,str,10);
 								ciaaPOSIX_write(fd_uart1, str, sizeof(str));
@@ -514,10 +515,13 @@ TASK(DigitalInTask)
 	    {
 		    estado_in1=1;
 		    valor_in[0]='1';
+		    pos_data.IN1 = 1;
+
 	    }else
 	    {
 		    estado_in1=0;
 		    valor_in[0]='0';
+		    pos_data.IN1 = 0;
 	    }
     }
    if ((inputs&0x02) != estado_in2)
@@ -527,10 +531,12 @@ TASK(DigitalInTask)
    	   {
    		   estado_in2=2;
    		   valor_in[1]='1';
+   		   pos_data.IN2 = 1;
    	   }else
    	   {
    		   estado_in2=0;
    		   valor_in[1]='0';
+   		   pos_data.IN2 = 0;
    	   }
       }
    if ((inputs&0x04) != estado_in3)
@@ -540,10 +546,12 @@ TASK(DigitalInTask)
    	   {
    		   estado_in3=4;
    		   valor_in[2]='1';
+   		   pos_data.IN3 = 1;
    	   }else
    	   {
    		   estado_in3=0;
    		   valor_in[2]='0';
+   		   pos_data.IN3 = 0;
    	   }
    }
    if ((inputs&0x08) != estado_in4)
@@ -553,14 +561,22 @@ TASK(DigitalInTask)
    	   {
    		   estado_in4=8;
    		   valor_in[3]='1';
+   		   pos_data.IN4 = 1;
    	   }else
    	   {
    		   estado_in4=0;
    		   valor_in[3]='0';
+   		   pos_data.IN4 = 0;
    	   }
    }
+
+//   pos_data.Digital_In = inputs;
+
    if (cambioestado == 1)
    {
+
+		put(pos_data); //guardo evento en cola de envio
+
 /* TEST_1: Visualizo por UART el estado de las salidas*/
 
 #ifdef Test_DigitalInTask
@@ -620,6 +636,8 @@ TASK(AnalogInTask)
 
    valor_ch1=adc_1;    // Guardo valor actual
    valor_ch3=adc_3;
+   pos_data.ADC1 = adc_1;
+   pos_data.ADC2 = adc_3;
 
 /* TEST_3: Visualizo por UART el estado de las salidas*/
 
@@ -826,31 +844,47 @@ TASK(GsmTask)
 
 			case SEND:
 			{
-				if (MutexUartGsm==FALSE)										//Si esta libre el Semaforo uart gsm
+				if (Send_Event == 1 || ITEMS > 0)                               // Si hay paquetes pendientes o en cola
 				{
-					MutexUartGsm=TRUE;											 //Tomo recurso
-					ciaaPOSIX_write(fd_uart2, CIPSEND, ciaaPOSIX_strlen(CIPSEND)); 	// Envio datos
+					if (MutexUartGsm==FALSE)										//Si esta libre el Semaforo uart gsm
+					{
+						MutexUartGsm=TRUE;											 	//Tomo recurso
+						ciaaPOSIX_write(fd_uart2, CIPSEND, ciaaPOSIX_strlen(CIPSEND)); 	// Envio datos
 
-					SetRelAlarm(SetEventTimeOut, 3000, 0);						// Activo time out 2 segundos
-					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				// Espero respuesta
-					MutexUartGsm=FALSE;									//Libero Recurso
-					GetEvent(GsmTask, &Events);
-					ClearEvent(Events);
-					if (Events & EVENTOK)
-					{
-						CancelAlarm(SetEventTimeOut);
-						ciaaPOSIX_write(fd_uart2, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
-						estado_gsm = ACKNOLEGE;
-					}
-					if (Events & EVENTERROR)
-					{
-						CancelAlarm(SetEventTimeOut);
-						SetRelAlarm(SetEventTimeOut, 1000, 0);					//Activo time out 2 segundos
-						WaitEvent(EVENTTIMEOUT);
+						SetRelAlarm(SetEventTimeOut, 3000, 0);						// Activo time out 2 segundos
+						WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				// Espero respuesta
+						MutexUartGsm=FALSE;											// Libero Recurso
 						GetEvent(GsmTask, &Events);
 						ClearEvent(Events);
-						estado_gsm = RED;										// Si hay error comienzo nuevamente el ciclo
+						if (Events & EVENTOK)
+						{
+							CancelAlarm(SetEventTimeOut);
+							if (Send_Event == 0)
+							{
+								get();  // Si no hay paquete pendiente, lo saco de la cola y lo formateo
+								genero_paquete(send_data,paquete);
+							}
+							ciaaPOSIX_write(fd_uart2, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
+							Send_Event == 1;
+							estado_gsm = ACKNOLEGE;
+						}
+						if (Events & EVENTERROR)
+						{
+							CancelAlarm(SetEventTimeOut);
+							SetRelAlarm(SetEventTimeOut, 1000, 0);					//Activo time out 2 segundos
+							WaitEvent(EVENTTIMEOUT);
+							GetEvent(GsmTask, &Events);
+							ClearEvent(Events);
+							estado_gsm = RED;										// Si hay error comienzo nuevamente el ciclo
+						}
 					}
+				}
+				else
+				{													// si no hay eventos por enviar espero
+					SetRelAlarm(SetEventTimeOut, 1000, 0);			// 2 segundos y vuelvo a consultar
+					WaitEvent(EVENTTIMEOUT);
+					GetEvent(GsmTask, &Events);
+					ClearEvent(Events);
 				}
 				break;
 			}
@@ -867,8 +901,9 @@ TASK(GsmTask)
 					CancelAlarm(SetEventTimeOut);
 					//////ciaaPOSIX_write(fd_uart1, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
 					ciaaPOSIX_write(fd_uart2, finrespuesta, ciaaPOSIX_strlen(finrespuesta)); 	// Caracteres de fin de respuesta, para que se borre buffer de respuesta en tarea serial task
-					TerminateTask();
-					estado_gsm = ACKNOLEGE;
+					Send_Event==0,
+					//TerminateTask();
+					estado_gsm = SEND;
 				}
 				if (Events & EVENTTIMEOUT)
 				{
@@ -915,6 +950,12 @@ TASK(GpsTask)
 			 MutexUartGsm=FALSE;										//Libero Recurso
 			 estado_gps=CONSULTO;
 			 break;
+		 }
+		 time_event_position++;							//Cada 1 min genero evento y lo pongo en la cola de envios
+		 if (time_event_position==TIME_POSITION)
+		 {
+			 put(pos_data);
+			 time_event_position=0;
 		 }
 	 }
 

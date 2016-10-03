@@ -155,21 +155,6 @@ char *strtok(char * str, const char * delim)
     return str;
 }
 
-/*==================[Funcion STRTOK]============================================*/
-int8_t *intstrtok(int8_t * str, const int8_t * delim)
-{
-    static int8_t* p=0;
-    if(str)
-        p=str;
-    else if(!p)
-        return 0;
-    str=p+strspn(p,delim);
-    p=str+strcspn(str,delim);
-    if(p==str)
-        return p=0;
-    p = *p ? *p=0,p+1 : 0;
-    return str;
-}
 /*==================[Funcion ATOI]============================================*/
 // A simple atoi() function
 int atoi(char *str)
@@ -187,8 +172,8 @@ int atoi(char *str)
 }
 
 /*==================[Funciones Parseo datos GPS]============================================*/
-
-void formato_respuesta(struct DATOS_POSICION * p)
+//Guardo datos posicion en pos_data
+void Guardo_datos_posicion(struct DATOS_POSICION * p)
 {
 	char CGPS[]="AT+CGPSINF=2 \r";
 	char CGPS_2[]="AT+CGPSINF=128 \r";
@@ -236,10 +221,11 @@ void formato_respuesta(struct DATOS_POSICION * p)
 
 /*==================[Funciones Parseo datos GPS]============================================*/
 
-void genero_paquete(struct DATOS_POSICION p)
+void genero_paquete(struct DATOS_POSICION p,char *paq)
 {
-	char paq[200];
+	//char paq[200];
 	char str[10]="RUSCIAA,";
+	ciaaPOSIX_strcat(paq, str);				// Copio encabezado
 	itoa(p.hora,str,10);
 	ciaaPOSIX_strcat(paq, str);				// Copio hora en paquete
 	itoa(p.dia,str,10);
@@ -264,8 +250,17 @@ void genero_paquete(struct DATOS_POSICION p)
 	itoa(p.validity,str,10);
 	ciaaPOSIX_strcat(paq, str);				// Copio validad en paquete
 	ciaaPOSIX_strcat(paq, ",");
-	itoa(p.Digital_In,str,10);
+	itoa(p.IN1,str,10);
 	ciaaPOSIX_strcat(paq, str);				// Copio Digital in en paquete
+	ciaaPOSIX_strcat(paq, ",");
+	itoa(p.IN2,str,10);
+	ciaaPOSIX_strcat(paq, str);
+	ciaaPOSIX_strcat(paq, ",");
+	itoa(p.IN3,str,10);
+	ciaaPOSIX_strcat(paq, str);
+	ciaaPOSIX_strcat(paq, ",");
+	itoa(p.IN4,str,10);
+	ciaaPOSIX_strcat(paq, str);
 	ciaaPOSIX_strcat(paq, ",");
 	itoa(p.ADC1,str,10);
 	ciaaPOSIX_strcat(paq, str);				// Copio Adc1 in en paquete
@@ -280,11 +275,11 @@ return;
 // insertar elemento a la lista
 void put(struct DATOS_POSICION d)
 {
-    //if ( ITEMS == MAX_SIZE) return -1;
+    if ( ITEMS == MAX_SIZE) ITEMS=MAX_SIZE-1;
     if ( cola >= MAX_SIZE) { cola = 0; }
     log_data[cola] = d;
     cola ++;
-    //ITEMS ++;
+    ITEMS ++;
     return;
 }
 
@@ -293,10 +288,11 @@ void get()
 {
     char d;
     //if ( empty() ) return -1;
+    if (ITEMS == 0) return -1;
     if ( cabeza >= MAX_SIZE ) { cabeza = 0; }
     send_data = log_data[cabeza];
     cabeza ++;
- //   ITEMS --;
+    ITEMS --;
     return;
 }
 
