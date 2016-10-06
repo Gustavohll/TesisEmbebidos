@@ -77,7 +77,7 @@ int8_t respuesta[100];
 #define TIME_POSITION 60
 static int cola = 0;
 static int cabeza = 0;
-static int ITEMS=0;
+//static int items=0;
 static int Send_Event=0;
 static char paquete[200];
 static struct DATOS_POSICION

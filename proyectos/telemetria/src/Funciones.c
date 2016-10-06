@@ -273,26 +273,26 @@ return;
 /*==================[Funciones COLA]============================================*/
 
 // insertar elemento a la lista
-void put(struct DATOS_POSICION d)
+void put(struct DATOS_POSICION d,int *items)
 {
-    if ( ITEMS == MAX_SIZE) ITEMS=MAX_SIZE-1;
+    if ( *items == MAX_SIZE) *items=MAX_SIZE-1;
     if ( cola >= MAX_SIZE) { cola = 0; }
     log_data[cola] = d;
     cola ++;
-    ITEMS ++;
+    *items +=1;
     return;
 }
 
 // retirar elemento de la lista
-void get()
+void get(int *items)
 {
     char d;
     //if ( empty() ) return -1;
-    if (ITEMS == 0) return -1;
+    if (*items == 0) return -1;
     if ( cabeza >= MAX_SIZE ) { cabeza = 0; }
     send_data = log_data[cabeza];
     cabeza ++;
-    ITEMS --;
+    *items -=1;
     return;
 }
 

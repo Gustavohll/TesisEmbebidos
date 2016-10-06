@@ -84,8 +84,8 @@ void Guardo_posicion(struct DATOS_POSICION * p);
 
 void genero_paquete(struct DATOS_POSICION p,char *paq);
 
-void put(struct DATOS_POSICION d);
-void get(void);
+void put(struct DATOS_POSICION d,int *items);
+void get(int *items);
 
 #endif /* #ifndef _BLINKING_H_ */
 
