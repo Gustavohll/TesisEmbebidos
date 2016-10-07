@@ -822,7 +822,7 @@ TASK(GsmTask)
 					{
 						SetRelAlarm(SetEventTimeOut, 3000, 0);				//Activo time out 2 segundos
 						WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);		//Espero respuesta
-						MutexUartGsm=FALSE;							//Libero Recurso
+						MutexUartGsm=FALSE;									//Libero Recurso
 						GetEvent(GsmTask, &Events);
 						ClearEvent(Events);
 						if (Events & EVENTOK)
@@ -926,7 +926,7 @@ TASK(GsmTask)
 				if (Events & EVENTTIMEOUT)
 				{
 					ciaaPOSIX_write(fd_uart2, finrespuesta, ciaaPOSIX_strlen(finrespuesta)); 	// Caracteres de fin de respuesta, para que se borre buffer de respuesta en tarea serial task
-					estado_gsm = SEND;
+					estado_gsm = RED;
 				}
 				break;
 			}

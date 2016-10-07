@@ -202,7 +202,7 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
         pch = strtok (NULL, ",");
         pch = strtok (NULL, ",");
         p->validity = atoi(pch);		 			 // Guardo si la posicion es valida (A) o no (V)
-     //   *statusgps = p->validity;
+        *statusgps = p->validity;
         //p->hora = 112233;
         //p->anio = 2016;
     }
