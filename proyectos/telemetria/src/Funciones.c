@@ -78,22 +78,22 @@
 
 void blinkled ()
 {
-	uint8_t outputs;
+	uint8_t out;
 	//static int32_t fd_out;
 	/* open CIAA digital outputs */
 	//fd_out = ciaaPOSIX_open("/dev/dio/out/0", ciaaPOSIX_O_RDWR);
 	/* read outputs */
-    ciaaPOSIX_read(fd_out, &outputs, 1);
+    ciaaPOSIX_read(fd_out, &out, 1);
 
     /* update outputs with inputs */
     //outputs &= 0xF0;
     //outputs |= inputs & 0x0F;
 
     /* blink */
-    outputs ^= 0x10;
+    out ^= 0x10;
 
     /* write */
-    ciaaPOSIX_write(fd_out, &outputs, 1);
+    ciaaPOSIX_write(fd_out, &out, 1);
 }
 /*==================[end of file]============================================*/
 
@@ -173,7 +173,7 @@ int atoi(char *str)
 
 /*==================[Funciones Parseo datos GPS]============================================*/
 //Guardo datos posicion en pos_data
-void Guardo_datos_posicion(struct DATOS_POSICION * p)
+void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 {
 	char CGPS[]="AT+CGPSINF=2 \r";
 	char CGPS_2[]="AT+CGPSINF=128 \r";
@@ -202,7 +202,7 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p)
         pch = strtok (NULL, ",");
         pch = strtok (NULL, ",");
         p->validity = atoi(pch);		 			 // Guardo si la posicion es valida (A) o no (V)
-
+     //   *statusgps = p->validity;
         //p->hora = 112233;
         //p->anio = 2016;
     }
@@ -221,55 +221,55 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p)
 
 /*==================[Funciones Parseo datos GPS]============================================*/
 
-void genero_paquete(struct DATOS_POSICION p,char *paq)
+void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2)
 {
-	//char paq[200];
+	//char paq1[200];
 	char str[10]=">RUSCIAA,";
 	char str2[25]=";ID=C001;#IP0:00E0< \x1A";
-	ciaaPOSIX_strcat(paq, str);				// Copio encabezado
+	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
 	itoa(p.hora,str,10);
-	ciaaPOSIX_strcat(paq, str);				// Copio hora en paquete
+	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
 	itoa(p.dia,str,10);
-	ciaaPOSIX_strcat(paq, str);				// Copio dia en paquete
+	ciaaPOSIX_strcat(paq1, str);				// Copio dia en paquete
 	itoa(p.mes,str,10);
-	ciaaPOSIX_strcat(paq, str);				// Copio mes en paquete
+	ciaaPOSIX_strcat(paq1, str);				// Copio mes en paquete
 	itoa(p.anio,str,10);
-	ciaaPOSIX_strcat(paq, str);				// Copio año en paquete
-	ciaaPOSIX_strcat(paq, ",-");
+	ciaaPOSIX_strcat(paq1, str);				// Copio año en paquete
+	ciaaPOSIX_strcat(paq1, ",-");
 	itoa(p.Lat,str,10);
-	ciaaPOSIX_strcat(paq, str);				// Copio Lat en paquete
-	ciaaPOSIX_strcat(paq, ".");
+	ciaaPOSIX_strcat(paq1, str);				// Copio Lat en paquete
+	ciaaPOSIX_strcat(paq1, ".");
 	itoa(p.DecLat,str,10);
-	ciaaPOSIX_strcat(paq, str);				// Copio DecLat en paquete
-	ciaaPOSIX_strcat(paq, ",-");
+	ciaaPOSIX_strcat(paq1, str);				// Copio DecLat en paquete
+	ciaaPOSIX_strcat(paq1, ",-");
 	itoa(p.Long,str,10);
-	ciaaPOSIX_strcat(paq, str);				// Copio Long en paquete
-	ciaaPOSIX_strcat(paq, ".");
+	ciaaPOSIX_strcat(paq1, str);				// Copio Long en paquete
+	ciaaPOSIX_strcat(paq1, ".");
 	itoa(p.DecLong,str,10);
-	ciaaPOSIX_strcat(paq, str);				// Copio DecLong en paquete
-	ciaaPOSIX_strcat(paq, ",");
+	ciaaPOSIX_strcat(paq1, str);				// Copio DecLong en paquete
+	ciaaPOSIX_strcat(paq2, ",");
 	itoa(p.validity,str,10);
-	ciaaPOSIX_strcat(paq, str);				// Copio validad en paquete
-	ciaaPOSIX_strcat(paq, ",");
+	ciaaPOSIX_strcat(paq2, str);				// Copio validad en paquete
+	ciaaPOSIX_strcat(paq2, ",");
 	itoa(p.IN1,str,10);
-	ciaaPOSIX_strcat(paq, str);				// Copio Digital in en paquete
-	ciaaPOSIX_strcat(paq, ",");
+	ciaaPOSIX_strcat(paq2, str);				// Copio Digital in en paquete
+	ciaaPOSIX_strcat(paq2, ",");
 	itoa(p.IN2,str,10);
-	ciaaPOSIX_strcat(paq, str);
-	ciaaPOSIX_strcat(paq, ",");
+	ciaaPOSIX_strcat(paq2, str);
+	ciaaPOSIX_strcat(paq2, ",");
 	itoa(p.IN3,str,10);
-	ciaaPOSIX_strcat(paq, str);
-	ciaaPOSIX_strcat(paq, ",");
+	ciaaPOSIX_strcat(paq2, str);
+	ciaaPOSIX_strcat(paq2, ",");
 	itoa(p.IN4,str,10);
-	ciaaPOSIX_strcat(paq, str);
-	ciaaPOSIX_strcat(paq, ",");
+	ciaaPOSIX_strcat(paq2, str);
+	ciaaPOSIX_strcat(paq2, ",");
 	itoa(p.ADC1,str,10);
-	ciaaPOSIX_strcat(paq, str);				// Copio Adc1 in en paquete
-	ciaaPOSIX_strcat(paq, ",");
+	ciaaPOSIX_strcat(paq2, str);				// Copio Adc1 in en paquete
+	ciaaPOSIX_strcat(paq2, ",");
 	itoa(p.ADC2,str,10);
-	ciaaPOSIX_strcat(paq, str);				// Copio Digital in en paquete
+	ciaaPOSIX_strcat(paq2, str);				// Copio Digital in en paquete
 	str[10]=" \n\r";
-	ciaaPOSIX_strcat(paq, str2);			// Copio Fin de Paquete
+	ciaaPOSIX_strcat(paq2, str2);			// Copio Fin de Paquete
 return;
 }
 

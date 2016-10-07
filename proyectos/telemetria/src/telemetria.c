@@ -159,14 +159,17 @@ char IP[]="AT+CIPSTART=\"UDP\",\"131.255.4.29\",\"6097\" \r";
 
 //AT+CIPSTART="UDP","190.12.119.150","6097"
 char last_position []=">RPF041207152350-3460160-05847853000000300FF01;ID=1020;#IP0:00E0< \x1A";
-//char last_position []=">RPF041207152350-3460160-05847853000000300FF01;ID=1020;#IP0:00E0;*19< \x1A";
+
 char CIIR[]="AT+CIICR \r";
 char CIFSR[]="AT+CIFSR \r";
 char CGATT[]="AT+CGATT? \r";
-char GPS[]="AT+CGPSINF=2 \r";
-char GPS_2[]="AT+CGPSINF=128 \r";
 char CIPSEND[]="AT+CIPSEND \r";
 char finrespuesta[]=" \r\n";
+
+char GPS[]="AT+CGPSINF=2 \r";
+char GPS_2[]="AT+CGPSINF=128 \r";
+char GPSPWR[]="AT+CGPSPWR=1 \r";
+char GPSRST[]="AT+CGPSRST=1 \r";
 
 char R_GPS[]="AT+CGPSINF=2 \r\r\n2,000000,0.000000,N,0.000000,E,0,0,0.000000,0.000000,M,0.000000,M,,0000\r\nOK\r\n";
 char R_GPS_2[]="AT+CGPSINF=128 \r\r\n128,180255.000,19,09,2016,00,00\r\nOK\r\n";
@@ -182,9 +185,9 @@ char R_CIPSEND[]="AT+CIPSEND \r\r\n";
 /*==================[Variables Task Gps]===============================*/
 enum ESTADOS_GPS
 			{
-				 CONSULTO=0,LIBERO,ultimo_estado_gps
+				 ENCIENDO_GPS=0,LIBERO1,RESET_GPS,CONSULTO,LIBERO,ultimo_estado_gps
 			};
-int estado_gps=CONSULTO;
+int estado_gps=ENCIENDO_GPS;
 int i_gps=0;
 int time_event_position=0;
 /*==================[external data definition]===============================*/
@@ -349,7 +352,7 @@ TASK(SerialTask)
       if(ret > 0)
       {
          /* also write them to the other device */
- //        ciaaPOSIX_write(fd_uart1, buf, ret);
+      //   ciaaPOSIX_write(fd_uart1, buf, ret);   ///////////////////////para debug comandos
          //ciaaPOSIX_strcat(respuesta, buf);			// Copio buffer en cadena de respuesta
          for (i=0;i<ret;i++)
          {
@@ -401,7 +404,7 @@ TASK(SerialTask)
 						if (ciaaPOSIX_strncmp(respuesta,CIFSR,8)==0)	tipo_comando=2;
 						if (ciaaPOSIX_strncmp(respuesta,IP,8)==0)		tipo_comando=4;
 						if (ciaaPOSIX_strncmp(respuesta,CIPSEND,8)==0)	tipo_comando=1;
-						if (ciaaPOSIX_strncmp(respuesta,GPS,8)==0)		tipo_comando=3;
+						if (ciaaPOSIX_strncmp(respuesta,GPS,10)==0)		tipo_comando=3;
 						if (tipo_comando==0)
 						{
 							ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
@@ -424,8 +427,8 @@ TASK(SerialTask)
 					if ((tipo_comando==3) && (fin_cadena==3))   // Si es un comando del tipo 3, espero 3 /n para detectar fin de respuesta
 					{
 						estado_serial=ESPERA;      							//Vuelvo a espera
-						Guardo_datos_posicion(&pos_data);			    	//Parseo datos de la respuesta y los guardo
-				//		genero_paquete(send_data);
+						Guardo_datos_posicion(&pos_data,&statusgps);			    	//Parseo datos de la respuesta y los guardo
+				//		genero_paquete_1(send_data);
 				//		put(pos_data);
 				//		get();
 					  /*		char str[10];
@@ -849,7 +852,7 @@ TASK(GsmTask)
 
 			case SEND:
 			{
-				if (Send_Event == 1 || items > 0)                               // Si hay paquetes pendientes o en cola
+				if (Send_Event == 1 || items > 0)                               // Si hay paquete_1s pendientes o en cola
 				{
 					if (MutexUartGsm==FALSE)										//Si esta libre el Semaforo uart gsm
 					{
@@ -866,13 +869,15 @@ TASK(GsmTask)
 							CancelAlarm(SetEventTimeOut);
 							if (Send_Event == 0)
 							{
-								ciaaPOSIX_memset(paquete, 0, sizeof(paquete));   // Limpio paquete de datos
-								get(&send_data,&cola,&cabeza,&items); 			 // Si no hay paquete pendiente, lo saco de la cola y lo formateo
-								genero_paquete(send_data,paquete);
+								ciaaPOSIX_memset(paquete_1, 0, sizeof(paquete_1));   // Limpio paquete_1 de datos
+								ciaaPOSIX_memset(paquete_2, 0, sizeof(paquete_2));
+								get(&send_data,&cola,&cabeza,&items); 			 // Si no hay paquete_1 pendiente, lo saco de la cola y lo formateo
+								genero_paquete(send_data,paquete_1,paquete_2);
 							}
 							ciaaPOSIX_write(fd_uart2, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
 #ifdef Test_GSM
-	ciaaPOSIX_write(fd_uart1, paquete, ciaaPOSIX_strlen(paquete));
+	ciaaPOSIX_write(fd_uart1, paquete_1, ciaaPOSIX_strlen(paquete_1));
+	ciaaPOSIX_write(fd_uart1, paquete_2, ciaaPOSIX_strlen(paquete_2));
 #endif
 							Send_Event = 1;
 							estado_gsm = ACKNOLEGE;
@@ -937,8 +942,34 @@ TASK(GpsTask)
     */
 	switch ( estado_gps )
 	 {
-		 case CONSULTO:
-		 {
+		case ENCIENDO_GPS:
+		{
+			if (MutexUartGsm==FALSE)									//Si esta libre el Semaforo uart gsm
+			{
+				MutexUartGsm=TRUE;
+				ciaaPOSIX_write(fd_uart2, GPSPWR, ciaaPOSIX_strlen(GPSPWR)); //Consulto posicion
+				estado_gps=LIBERO1;
+			}
+			break;
+		}
+		case LIBERO1:
+		{
+			MutexUartGsm=FALSE;										//Libero Recurso
+			estado_gps=RESET_GPS;
+			break;
+		}
+		case RESET_GPS:
+		{
+			if (MutexUartGsm==FALSE)									//Si esta libre el Semaforo uart gsm
+			{
+				MutexUartGsm=TRUE;
+				ciaaPOSIX_write(fd_uart2, GPSRST, ciaaPOSIX_strlen(GPSRST)); //Consulto posicion
+				estado_gps=LIBERO;
+			}
+			break;
+		}
+		case CONSULTO:
+		{
 			 if (MutexUartGsm==FALSE)									//Si esta libre el Semaforo uart gsm
 			 {
 				 MutexUartGsm=TRUE;

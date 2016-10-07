@@ -69,7 +69,7 @@ TASK InitTask {
 }
 
 TASK SerialTask {
-    PRIORITY = 10;
+    PRIORITY = 4;
     ACTIVATION = 1;
     STACK = 512;
     TYPE = EXTENDED;

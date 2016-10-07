@@ -70,7 +70,7 @@
 
 /*==================[external functions declaration]=========================*/
 int32_t fd_out;   // no es static , porque sino no funciona, ver????
-
+int32_t fd_outleds;
 
 int8_t respuesta[100];
 #define MAX_SIZE 10
@@ -79,7 +79,8 @@ int8_t respuesta[100];
 //static int cabeza = 0;
 //static int items=0;
 static int Send_Event=0;
-static char paquete[200];
+static char paquete_1[100];
+static char paquete_2[100];
 static struct DATOS_POSICION
 {
 	int dia;
