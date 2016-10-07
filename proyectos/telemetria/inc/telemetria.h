@@ -75,8 +75,8 @@ int32_t fd_out;   // no es static , porque sino no funciona, ver????
 int8_t respuesta[100];
 #define MAX_SIZE 10
 #define TIME_POSITION 60
-static int cola = 0;
-static int cabeza = 0;
+//static int cola = 0;
+//static int cabeza = 0;
 //static int items=0;
 static int Send_Event=0;
 static char paquete[200];

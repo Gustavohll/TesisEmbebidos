@@ -182,7 +182,7 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p)
 	int8_t respuesta1[]="AT+CGPSINF=2\r\r\n2,180231,3437.130250,S,5824.354484,W,1,7,1.348750,45.631660,M,14.588299,M,,0000\r\nOK\r";
 //	int8_t respuesta1[]="AT+CGPSINF=128 \r\r\n128,180255.000,19,09,2016,00,00\r\nOK\r\n";
 
-	pch = strtok(respuesta1,",");       // Tokenizamos (troceamos) la respuesta que tenemos en el array respuesta por las comas
+	pch = strtok(respuesta,",");       // Tokenizamos (troceamos) la respuesta que tenemos en el array respuesta por las comas
 									   // y el primer intervalo lo guardamos en pch (puntero char)
     //Analizamos ese intervalo guardado en pch para ver si es la respuesta que necesitamos
 	if (ciaaPOSIX_strncmp(pch,CGPS,12)==0)
@@ -203,8 +203,8 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p)
         pch = strtok (NULL, ",");
         p->validity = atoi(pch);		 			 // Guardo si la posicion es valida (A) o no (V)
 
-        p->hora = 112233;
-        p->anio = 2016;
+        //p->hora = 112233;
+        //p->anio = 2016;
     }
 	if (ciaaPOSIX_strncmp(pch,CGPS_2,14)==0)
 	{
@@ -214,7 +214,7 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p)
 		pch = strtok (NULL, ",");
 		p->mes = atoi(pch);			 	 // Guardo el mes
 		pch = strtok (NULL, ",");
-		p->anio = atoi(pch);			 	 // Guardo el año
+		p->anio = atoi(pch);			 // Guardo el año
 	}
     return;
 }
@@ -224,7 +224,8 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p)
 void genero_paquete(struct DATOS_POSICION p,char *paq)
 {
 	//char paq[200];
-	char str[10]="RUSCIAA,";
+	char str[10]=">RUSCIAA,";
+	char str2[25]=";ID=C001;#IP0:00E0< \x1A";
 	ciaaPOSIX_strcat(paq, str);				// Copio encabezado
 	itoa(p.hora,str,10);
 	ciaaPOSIX_strcat(paq, str);				// Copio hora en paquete
@@ -267,31 +268,32 @@ void genero_paquete(struct DATOS_POSICION p,char *paq)
 	ciaaPOSIX_strcat(paq, ",");
 	itoa(p.ADC2,str,10);
 	ciaaPOSIX_strcat(paq, str);				// Copio Digital in en paquete
+	str[10]=" \n\r";
+	ciaaPOSIX_strcat(paq, str2);			// Copio Fin de Paquete
 return;
 }
 
 /*==================[Funciones COLA]============================================*/
 
 // insertar elemento a la lista
-void put(struct DATOS_POSICION d,int *items)
+void put(struct DATOS_POSICION d,int *cola,int *cabeza,int *items)
 {
     if ( *items == MAX_SIZE) *items=MAX_SIZE-1;
-    if ( cola >= MAX_SIZE) { cola = 0; }
-    log_data[cola] = d;
-    cola ++;
+    if ( *cola >= MAX_SIZE) { *cola = 0; }
+    log_data[*cola] = d;
+    *cola +=1;
     *items +=1;
     return;
 }
 
 // retirar elemento de la lista
-void get(int *items)
+void get(struct DATOS_POSICION *d,int *cola,int *cabeza,int *items)
 {
-    char d;
     //if ( empty() ) return -1;
-    if (*items == 0) return -1;
-    if ( cabeza >= MAX_SIZE ) { cabeza = 0; }
-    send_data = log_data[cabeza];
-    cabeza ++;
+    if (*items == 0) return;
+    if ( *cabeza >= MAX_SIZE ) { *cabeza = 0; }
+    *d = log_data[*cabeza];
+    *cabeza +=1;
     *items -=1;
     return;
 }
