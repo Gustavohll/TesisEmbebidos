@@ -427,17 +427,7 @@ TASK(SerialTask)
 					if ((tipo_comando==3) && (fin_cadena==3))   // Si es un comando del tipo 3, espero 3 /n para detectar fin de respuesta
 					{
 						estado_serial=ESPERA;      							//Vuelvo a espera
-						Guardo_datos_posicion(&pos_data,&statusgps);			    	//Parseo datos de la respuesta y los guardo
-				//		genero_paquete_1(send_data);
-				//		put(pos_data);
-				//		get();
-					  /*		char str[10];
-								itoa(pos_data.hora,str,10);
-								ciaaPOSIX_write(fd_uart1, str, sizeof(str));
-								itoa(pos_data.Lat,str,10);
-						        ciaaPOSIX_write(fd_uart1, str, sizeof(str));
-						       // ciaaPOSIX_write(fd_uart1, pos_data.NS, sizeof(pos_data.NS));
-					 */
+						Guardo_datos_posicion(&pos_data,&statusgps);		//Parseo datos de la respuesta y los guardo
 						respuesta_ok=0;
 						respuesta_recibida=0;
 						ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
@@ -605,13 +595,7 @@ TASK(AnalogInTask)
 {
    /*
     * Example:
-    *    Read inputs 0..3, update outputs 0..3.
-    *    Blink output 4
     */
-   char message4[] = "Tarea Analog in \r";
-//   ciaaPOSIX_write(fd_uart1, message4, ciaaPOSIX_strlen(message4));
-   /* variables to store input/output status */
-   ciaaPOSIX_printf("task analog");
    int32_t count;
    uint16_t hr_ciaaDac,adc_1,adc_2,adc_3;
 
@@ -669,7 +653,8 @@ TASK(AnalogInTask)
    /*Reset banderas de cambio de estado*/
    if ((estado_ch1|estado_ch3) == 1)
    {
-  	   estado_ch1=0;
+	   put(pos_data,&cola,&cabeza,&items); //guardo evento en cola de envio
+	   estado_ch1=0;
   	   estado_ch3=0;
    }
 
@@ -699,7 +684,6 @@ TASK(ModBusTask)
 TASK(LedsTask)
 {
    /*
-    * Example:
     *    Blink Led rojo si statusgps=0, On Led Rojo si statusgps=1
     *    Blink Led verde si statusgsm=0, On Led Verde si statusgsm=1
     */
@@ -707,11 +691,6 @@ TASK(LedsTask)
 
    /* TEST_2: Titilo ambos leds 10 veces y luego los dejo fijos*/
 #ifdef Test_LedsTask
-
-//   char message5[] = "Tarea LED  \r";
-//   ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
-   /* variables to store input/output status */
-//   ciaaPOSIX_printf("LEDSTask");
 
    if (Periodic_Task_Counter == 20)
    {
@@ -740,8 +719,6 @@ TASK(LedsTask)
 
    ciaaPOSIX_write(fd_out, &outputs, 1);
    Periodic_Task_Counter++;
-
-
    /* end LedsTask */
    TerminateTask();
 }
@@ -992,12 +969,12 @@ TASK(GpsTask)
 			 estado_gps=CONSULTO;
 			 break;
 		 }
-		 time_event_position++;							//Cada 1 min genero evento y lo pongo en la cola de envios
-		 if (time_event_position==TIME_POSITION)
-		 {
-			// put(pos_data);
-			 time_event_position=0;
-		 }
+	 }
+	 time_event_position++;							//Cada 1 min genero evento y lo pongo en la cola de envios
+	 if (time_event_position==TIME_POSITION)
+	 {
+		 put(pos_data,&cola,&cabeza,&items); //guardo evento en cola de envio
+		 time_event_position=0;
 	 }
 
 /*
