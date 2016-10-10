@@ -135,7 +135,8 @@ TASK GsmTask {
     EVENT = EVENTERROR;
     EVENT = EVENTTIMEOUT;
     EVENT = EVENTACK;
-    RESOURCE = POSIXR;   
+    RESOURCE = POSIXR;
+       
 }
 
 TASK GpsTask {
@@ -146,17 +147,19 @@ TASK GpsTask {
     SCHEDULE = FULL;
     EVENT = POSIXE;
     RESOURCE = POSIXR;
+    SCHEDULE = FULL;
 }
 
 TASK EventTask {
-    PRIORITY = 1;
+    PRIORITY = 10;
     ACTIVATION = 1;
     STACK = 512;
-    TYPE = EXTENDED;
+    TYPE = BASIC;
     SCHEDULE = FULL;
     EVENT = POSIXE;
-    EVENT = EVENTIN;
-    EVENT = EVENTOUT;  
+    AUTOSTART = TRUE {
+        APPMODE = AppMode1;
+    }
 }
 
 ALARM ActivateDigitalInTask {
@@ -178,6 +181,14 @@ ALARM ActivateGpsTask {
     COUNTER = SoftwareCounter;
     ACTION = ACTIVATETASK {
         TASK = GpsTask;
+    }
+}
+
+
+ALARM ActivateEventTask {
+    COUNTER = SoftwareCounter;
+    ACTION = ACTIVATETASK {
+        TASK = EventTask;
     }
 }
 

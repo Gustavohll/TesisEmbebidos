@@ -54,6 +54,8 @@
 //#define Test_DigitalInTask
 //#define Test_LedTask
 #define Test_GSM
+#define Test_SerialTask
+
 /*==================[internal data declaration]==============================*/
 
 /*==================[internal functions declaration]=========================*/
@@ -304,7 +306,8 @@ TASK(InitTask)
    Periodic_Task_Counter = 0;
    SetRelAlarm(ActivateDigitalInTask, 200, 500); 	// Cada 500 ms
    SetRelAlarm(ActivateLedsTask, 100, 250);  		// Cada 250 ms
-   SetRelAlarm(ActivateGpsTask,15000, 500);  		// Cada 1 s
+   SetRelAlarm(ActivateGpsTask,15000, 1000);  		// Cada 1 s
+   SetRelAlarm(ActivateEventTask,14600, 10000);  	// Cada 10 s
    /*Contadores a cero*/
    Contador_In1=0;
    Contador_In2=0;
@@ -352,8 +355,10 @@ TASK(SerialTask)
       if(ret > 0)
       {
          /* also write them to the other device */
-      //   ciaaPOSIX_write(fd_uart1, buf, ret);   ///////////////////////para debug comandos
-         //ciaaPOSIX_strcat(respuesta, buf);			// Copio buffer en cadena de respuesta
+#ifdef Test_SerialTask
+    	  ciaaPOSIX_write(fd_uart1, buf, ret);   ///////////////////////para debug comandos
+#endif
+    	  //ciaaPOSIX_strcat(respuesta, buf);			// Copio buffer en cadena de respuesta
          for (i=0;i<ret;i++)
          {
 			 switch ( estado_serial )
@@ -794,7 +799,7 @@ TASK(GsmTask)
 					if(x==1) ciaaPOSIX_write(fd_uart2, APN, ciaaPOSIX_strlen(APN)); 	 //Consulto si tiene señal gprs
 					if(x==2) ciaaPOSIX_write(fd_uart2, CIIR, ciaaPOSIX_strlen(CIIR));  	 //Consulto si tiene señal gprs "AT+CIICR";
 					if(x==3) ciaaPOSIX_write(fd_uart2, CIFSR, ciaaPOSIX_strlen(CIFSR));  //Consulto si tiene señal gprs "AT+CIFSR";
-					if(x==4) ciaaPOSIX_write(fd_uart2, IP, ciaaPOSIX_strlen(IP)); 		 //Consulto si tiene se�al gprs IP);
+					if(x==4) ciaaPOSIX_write(fd_uart2, IP, ciaaPOSIX_strlen(IP)); 		 //Configuro ip y puerto ;
 					if(x<5)
 					{
 						SetRelAlarm(SetEventTimeOut, 3000, 0);				//Activo time out 2 segundos
@@ -822,8 +827,8 @@ TASK(GsmTask)
 				{
 					estado_gsm = SEND;
 					x=6;
+					MutexUartGsm=FALSE;									//Libero Recurso
 				}
-
 				break;
 			}
 
@@ -903,6 +908,7 @@ TASK(GsmTask)
 				if (Events & EVENTTIMEOUT)
 				{
 					ciaaPOSIX_write(fd_uart2, finrespuesta, ciaaPOSIX_strlen(finrespuesta)); 	// Caracteres de fin de respuesta, para que se borre buffer de respuesta en tarea serial task
+					x=4;
 					estado_gsm = RED;
 				}
 				break;
@@ -952,11 +958,11 @@ TASK(GpsTask)
 				 MutexUartGsm=TRUE;
 				 if (i_gps==10)
 				 {
-					 ciaaPOSIX_write(fd_uart2, GPS_2, ciaaPOSIX_strlen(GPS_2)); //Consulto posicion
+	//				 ciaaPOSIX_write(fd_uart2, GPS_2, ciaaPOSIX_strlen(GPS_2)); //Consulto posicion
 					 i_gps=0;
 				 }else
 				 {
-					 ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS)); //Consulto Fecha
+	//				 ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS)); //Consulto Fecha
 					 i_gps++;
 				 }
 				 estado_gps=LIBERO;
@@ -970,12 +976,7 @@ TASK(GpsTask)
 			 break;
 		 }
 	 }
-	 time_event_position++;							//Cada 1 min genero evento y lo pongo en la cola de envios
-	 if (time_event_position==TIME_POSITION)
-	 {
-		 put(pos_data,&cola,&cabeza,&items); //guardo evento en cola de envio
-		 time_event_position=0;
-	 }
+
 
 /*
 	if (MutexUartGsm==FALSE)									//Si esta libre el Semaforo uart gsm
@@ -1001,8 +1002,13 @@ TASK(EventTask)
     *    Read inputs 0..3, update outputs 0..3.
     *    Blink output 4
     */
-
-   TerminateTask();
+	time_event_position++;							//Cada 1 min genero evento y lo pongo en la cola de envios
+	if (time_event_position==TIME_POSITION)
+	{
+		put(pos_data,&cola,&cabeza,&items); //guardo evento en cola de envio
+		time_event_position=0;
+	}
+	TerminateTask();
 }
 /** @} doxygen end group definition */
 /** @} doxygen end group definition */

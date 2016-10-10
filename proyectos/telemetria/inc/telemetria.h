@@ -74,7 +74,7 @@ int32_t fd_outleds;
 
 int8_t respuesta[100];
 #define MAX_SIZE 10
-#define TIME_POSITION 120
+#define TIME_POSITION 6
 //static int cola = 0;
 //static int cabeza = 0;
 //static int items=0;
