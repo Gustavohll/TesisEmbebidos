@@ -99,6 +99,8 @@ static struct DATOS_POSICION
 	int ADC1;
 	int ADC2;
 	float Modbus;
+	int event;
+	int log;
 } pos_data,send_data,log_data[MAX_SIZE];
 
 /** @} doxygen end group definition */

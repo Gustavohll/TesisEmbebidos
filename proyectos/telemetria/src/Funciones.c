@@ -225,7 +225,8 @@ void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2)
 {
 	//char paq1[200];
 	char str[10]=">RUSCIAA,";
-	char str2[25]=";ID=C001;#IP0:00E0< \x1A";
+	char str2[25]=";ID=C001;#IP0:";
+	char str3[25]="< \x1A";
 	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
 	itoa(p.hora,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
@@ -247,9 +248,9 @@ void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2)
 	ciaaPOSIX_strcat(paq1, ".");
 	itoa(p.DecLong,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio DecLong en paquete
-	ciaaPOSIX_strcat(paq2, ",");
+	ciaaPOSIX_strcat(paq1, ",");
 	itoa(p.validity,str,10);
-	ciaaPOSIX_strcat(paq2, str);				// Copio validad en paquete
+	ciaaPOSIX_strcat(paq1, str);				// Copio validad en paquete
 	ciaaPOSIX_strcat(paq2, ",");
 	itoa(p.IN1,str,10);
 	ciaaPOSIX_strcat(paq2, str);				// Copio Digital in en paquete
@@ -267,9 +268,17 @@ void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2)
 	ciaaPOSIX_strcat(paq2, str);				// Copio Adc1 in en paquete
 	ciaaPOSIX_strcat(paq2, ",");
 	itoa(p.ADC2,str,10);
-	ciaaPOSIX_strcat(paq2, str);				// Copio Digital in en paquete
-	str[10]=" \n\r";
-	ciaaPOSIX_strcat(paq2, str2);			// Copio Fin de Paquete
+	ciaaPOSIX_strcat(paq2, str);				// Copio ADC2 in en paquete
+	ciaaPOSIX_strcat(paq2, ",");
+	itoa(p.Modbus,str,10);
+	ciaaPOSIX_strcat(paq2, str);				// Copio Modbus en paquete
+	ciaaPOSIX_strcat(paq2, ",");
+	itoa(p.event,str,10);
+	ciaaPOSIX_strcat(paq2, str);				// Copio n° de paquete
+	ciaaPOSIX_strcat(paq2, str2);				// Copio Fin de Paquete1
+	itoa(p.log,str,10);
+	ciaaPOSIX_strcat(paq2, str);				// Copio n° log para ack
+	ciaaPOSIX_strcat(paq2, str2);				// Copio Fin de Paquete2
 return;
 }
 
