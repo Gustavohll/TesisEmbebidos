@@ -309,12 +309,13 @@ TASK(InitTask)
    SetRelAlarm(ActivateDigitalInTask, 200, 500); 	// Cada 500 ms
    SetRelAlarm(ActivateLedsTask, 100, 250);  		// Cada 250 ms
    SetRelAlarm(ActivateGpsTask,15000, 1000);  		// Cada 1 s
-   SetRelAlarm(ActivateEventTask,14600, 10000);  	// Cada 10 s
+//   SetRelAlarm(ActivateEventTask,14600, 10000);  	// Cada 10 s
    /*Contadores a cero*/
    Contador_In1=0;
    Contador_In2=0;
    Contador_In3=0;
    Contador_In4=0;
+   pos_data.log = 9987;
 
    /* Activates the SerialEchoTask task */
    ActivateTask(SerialTask);
@@ -515,7 +516,7 @@ TASK(DigitalInTask)
 
    /* read inputs */
     ciaaPOSIX_read(fd_in, &inputs, 1);
-
+    if (pos_data.log >= 9990) pos_data.log = 0;
     if ((inputs&0x01) != estado_in1)
     {
 	    cambioestado=1;
@@ -586,7 +587,7 @@ TASK(DigitalInTask)
 
    if (cambioestado == 1)
    {
-
+	    pos_data.log += 1;				// evento cambio in1
 		put(pos_data,&cola,&cabeza,&items); //guardo evento en cola de envio
 		/* Genero evento de cambio de estado*/
 		cambioestado=0;
@@ -813,7 +814,7 @@ TASK(GsmTask)
 					if(x==5) ciaaPOSIX_write(fd_uart2, IP, ciaaPOSIX_strlen(IP)); 		 	 //Configuro ip y puerto ;
 					if(x<6)
 					{
-						SetRelAlarm(SetEventTimeOut, 3000, 0);				//Activo time out 2 segundos
+						SetRelAlarm(SetEventTimeOut, 6000, 0);				//Activo time out 2 segundos
 						WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);		//Espero respuesta
 						MutexUartGsm=FALSE;									//Libero Recurso
 						GetEvent(GsmTask, &Events);
@@ -841,7 +842,7 @@ TASK(GsmTask)
 					MutexUartGsm=FALSE;									//Libero Recurso
 				}
 
-				SetRelAlarm(SetEventTimeOut, 5000, 0);				//Activo time out 1000 mseg para envio entre comandos
+				SetRelAlarm(SetEventTimeOut, 2000, 0);				//Activo time out 2000 mseg para envio entre comandos
 				WaitEvent(EVENTTIMEOUT);							//Espero respuesta
 				GetEvent(GsmTask, &Events);
 				ClearEvent(Events);
@@ -857,7 +858,7 @@ TASK(GsmTask)
 						MutexUartGsm=TRUE;											 	//Tomo recurso
 						ciaaPOSIX_write(fd_uart2, CIPSEND, ciaaPOSIX_strlen(CIPSEND)); 	// Envio datos
 
-						SetRelAlarm(SetEventTimeOut, 3000, 0);						// Activo time out 2 segundos
+						SetRelAlarm(SetEventTimeOut, 3000, 0);						// Activo time out 3 segundos
 						WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				// Espero respuesta
 						MutexUartGsm=FALSE;											// Libero Recurso
 						GetEvent(GsmTask, &Events);
@@ -891,13 +892,11 @@ TASK(GsmTask)
 						}
 					}
 				}
-				else
-				{													// si no hay eventos por enviar espero
-					SetRelAlarm(SetEventTimeOut, 1000, 0);			// 2 segundos y vuelvo a consultar
-					WaitEvent(EVENTTIMEOUT);
-					GetEvent(GsmTask, &Events);
-					ClearEvent(Events);
-				}
+				// si no hay eventos por enviar 0 el mutex esta ocupado espero 1 segundo
+				SetRelAlarm(SetEventTimeOut, 1000, 0);
+				WaitEvent(EVENTTIMEOUT);
+				GetEvent(GsmTask, &Events);
+				ClearEvent(Events);
 				break;
 			}
 

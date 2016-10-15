@@ -230,8 +230,10 @@ void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2)
 	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
 	itoa(p.hora,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
+	if (p.dia < 10) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.dia,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio dia en paquete
+	if (p.mes < 10) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.mes,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio mes en paquete
 	itoa(p.anio,str,10);
@@ -276,9 +278,13 @@ void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2)
 	itoa(p.event,str,10);
 	ciaaPOSIX_strcat(paq2, str);				// Copio n° de paquete
 	ciaaPOSIX_strcat(paq2, str2);				// Copio Fin de Paquete1
+	if (p.log < 1000) ciaaPOSIX_strcat(paq2, "0");
+	if (p.log < 100)  ciaaPOSIX_strcat(paq2, "0");
+	if (p.log < 10)   ciaaPOSIX_strcat(paq2, "0");
 	itoa(p.log,str,10);
 	ciaaPOSIX_strcat(paq2, str);				// Copio n° log para ack
-	ciaaPOSIX_strcat(paq2, str2);				// Copio Fin de Paquete2
+
+	ciaaPOSIX_strcat(paq2, str3);				// Copio Fin de Paquete3
 return;
 }
 
