@@ -54,7 +54,7 @@
 //#define Test_DigitalInTask
 //#define Test_LedTask
 #define Test_GSM
-#define Test_SerialTask
+//#define Test_SerialTask
 
 /*==================[internal data declaration]==============================*/
 
@@ -316,6 +316,10 @@ TASK(InitTask)
    Contador_In3=0;
    Contador_In4=0;
    pos_data.log = 9987;
+   pos_data.dia = 10;
+   pos_data.mes = 10;
+   pos_data.anio = 1970;
+   pos_data.hora= 101010;
 
    /* Activates the SerialEchoTask task */
    ActivateTask(SerialTask);
@@ -971,11 +975,11 @@ TASK(GpsTask)
 				 MutexUartGsm=TRUE;
 				 if (i_gps==10)
 				 {
-	//				 ciaaPOSIX_write(fd_uart2, GPS_2, ciaaPOSIX_strlen(GPS_2)); //Consulto posicion
+					 ciaaPOSIX_write(fd_uart2, GPS_2, ciaaPOSIX_strlen(GPS_2)); //Consulto posicion
 					 i_gps=0;
 				 }else
 				 {
-	//				 ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS)); //Consulto Fecha
+					 ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS)); //Consulto Fecha
 					 i_gps++;
 				 }
 				 estado_gps=LIBERO;

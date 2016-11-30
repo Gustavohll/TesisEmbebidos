@@ -179,6 +179,7 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 	char CGPS_2[]="AT+CGPSINF=128 \r";
 	char *pch;
 	double aux1,aux2;
+	int fecha;
 	int8_t respuesta1[]="AT+CGPSINF=2\r\r\n2,180231,3437.130250,S,5824.354484,W,1,7,1.348750,45.631660,M,14.588299,M,,0000\r\nOK\r";
 //	int8_t respuesta1[]="AT+CGPSINF=128 \r\r\n128,180255.000,19,09,2016,00,00\r\nOK\r\n";
 
@@ -215,6 +216,13 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 		p->mes = atoi(pch);			 	 // Guardo el mes
 		pch = strtok (NULL, ",");
 		p->anio = atoi(pch);			 // Guardo el año
+		fecha = p->anio;
+		if(fecha < 2016)
+		{
+			p->dia = 10;
+			p->mes = 10;
+			p->anio = 1970;
+		}
 	}
     return;
 }
