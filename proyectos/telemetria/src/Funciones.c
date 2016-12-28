@@ -290,9 +290,105 @@ void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2)
 	if (p.log < 100)  ciaaPOSIX_strcat(paq2, "0");
 	if (p.log < 10)   ciaaPOSIX_strcat(paq2, "0");
 	itoa(p.log,str,10);
-	ciaaPOSIX_strcat(paq2, str);				// Copio nÂ° log para ack
+	ciaaPOSIX_strcat(paq2, str);				// Copio n° log para ack
 
 	ciaaPOSIX_strcat(paq2, str3);				// Copio Fin de Paquete3
+return;
+}
+
+void genero_paquete_RUS07(struct DATOS_POSICION p,char *paq1,char *paq2)
+{
+	//char paq1[200];
+	char str[10]=">RUS07,T,";
+	char str2[25]=";ID=C001;#IP0:";
+	char str3[25]="< \x1A";
+	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
+	itoa(p.hora,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
+	if (p.dia < 10) ciaaPOSIX_strcat(paq1, "0");
+	itoa(p.dia,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio dia en paquete
+	if (p.mes < 10) ciaaPOSIX_strcat(paq1, "0");
+	itoa(p.mes,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio mes en paquete
+	itoa(p.anio,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio aÃ±o en paquete
+	ciaaPOSIX_strcat(paq2, ",V,");
+	itoa(p.IN1,str,10);
+	ciaaPOSIX_strcat(paq2, str);				// Copio Digital in en paquete
+	ciaaPOSIX_strcat(paq2, ",W,");
+	itoa(p.IN2,str,10);
+	ciaaPOSIX_strcat(paq2, str);
+	ciaaPOSIX_strcat(paq2, ",X,");
+	itoa(p.IN3,str,10);
+	ciaaPOSIX_strcat(paq2, str);
+	ciaaPOSIX_strcat(paq2, ",Y,");
+	itoa(p.IN4,str,10);
+	ciaaPOSIX_strcat(paq2, str);
+	ciaaPOSIX_strcat(paq2, ",Z,");
+	itoa(p.ADC1,str,10);
+	ciaaPOSIX_strcat(paq2, str);				// Copio Adc1 in en paquete
+	ciaaPOSIX_strcat(paq2, ",a,");
+	itoa(p.ADC2,str,10);
+	ciaaPOSIX_strcat(paq2, str);				// Copio ADC2 in en paquete
+	ciaaPOSIX_strcat(paq2, ",b,");
+	itoa(p.Modbus,str,10);
+	ciaaPOSIX_strcat(paq2, str);				// Copio Modbus en paquete
+	ciaaPOSIX_strcat(paq2, ",");
+	itoa(p.event,str,10);
+	ciaaPOSIX_strcat(paq2, str);				// Copio nÂ° de paquete
+	ciaaPOSIX_strcat(paq2, str2);				// Copio Fin de Paquete1
+	if (p.log < 1000) ciaaPOSIX_strcat(paq2, "0");
+	if (p.log < 100)  ciaaPOSIX_strcat(paq2, "0");
+	if (p.log < 10)   ciaaPOSIX_strcat(paq2, "0");
+	itoa(p.log,str,10);
+	ciaaPOSIX_strcat(paq2, str);				// Copio n° log para ack
+
+	ciaaPOSIX_strcat(paq2, str3);				// Copio Fin de Paquete3
+return;
+}
+void genero_paquete_PI(struct DATOS_POSICION p,char *paq1,char *paq2)
+{
+	//char paq1[200];
+//	RPI241207150026-3460180-05847823156025106 0000101311210000000720F500
+
+	char str[10]=">RPI,";
+	char str2[25]=";ID=C001;#IP0:";
+	char str3[25]="< \x1A";
+	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
+	if (p.dia < 10) ciaaPOSIX_strcat(paq1, "0");
+	itoa(p.dia,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio dia en paquete
+	if (p.mes < 10) ciaaPOSIX_strcat(paq1, "0");
+	itoa(p.mes,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio mes en paquete
+	itoa(p.anio,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio aÃ±o en paquete
+	itoa(p.hora,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
+	ciaaPOSIX_strcat(paq1, ",-");
+	itoa(p.Lat,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio Lat en paquete
+	itoa(p.DecLat,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio DecLat en paquete
+	ciaaPOSIX_strcat(paq1, "-0");
+	itoa(p.Long,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio Long en paquete
+	itoa(p.DecLong,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio DecLong en paquete
+	ciaaPOSIX_strcat(paq1, "156025106000");
+	itoa(p.validity,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio validad en paquete
+	ciaaPOSIX_strcat(paq1, "101311210000000720F500");
+	ciaaPOSIX_strcat(paq1, ",");
+	ciaaPOSIX_strcat(paq1, str2);				// Copio Fin de Paquete1
+	if (p.log < 1000) ciaaPOSIX_strcat(paq1, "0");
+	if (p.log < 100)  ciaaPOSIX_strcat(paq1, "0");
+	if (p.log < 10)   ciaaPOSIX_strcat(paq1, "0");
+	itoa(p.log,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio n° log para ack
+
+	ciaaPOSIX_strcat(paq1, str3);				// Copio Fin de Paquete3
 return;
 }
 
