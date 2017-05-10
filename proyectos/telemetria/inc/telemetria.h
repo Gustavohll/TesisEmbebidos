@@ -73,6 +73,7 @@ int32_t fd_out;   // no es static , porque sino no funciona, ver????
 int32_t fd_outleds;
 
 int8_t respuesta[100];
+int8_t respuesta_gps[100];
 #define MAX_SIZE 10
 #define TIME_POSITION 6
 //static int cola = 0;
@@ -83,6 +84,7 @@ static char paquete_1[100];
 static char paquete_2[100];
 static struct DATOS_POSICION
 {
+	int fecha;
 	int dia;
 	int mes;
 	int anio;

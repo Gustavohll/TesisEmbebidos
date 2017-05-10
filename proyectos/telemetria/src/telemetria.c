@@ -53,9 +53,9 @@
 //#define Test_AnalogInTask
 //#define Test_DigitalInTask
 //#define Test_LedTask
-#define Test_GSM
-//#define Test_SerialTask
-
+//#define Test_GSM
+#define Test_SerialGsmTask
+//#define Test_SerialGpsTask
 /*==================[internal data declaration]==============================*/
 
 /*==================[internal functions declaration]=========================*/
@@ -80,21 +80,21 @@ static int32_t fd_in;
  */
 //static int32_t fd_out;
 
+/** \brief File descriptor of the gps uart
+ *
+ * Device path /dev/serial/uart/0
+ */
+static int32_t fd_uart_gps;
 /** \brief File descriptor of the USB uart
  *
  * Device path /dev/serial/uart/1
  */
-static int32_t fd_uart0;
-/** \brief File descriptor of the USB uart
- *
- * Device path /dev/serial/uart/1
- */
-static int32_t fd_uart1;
+static int32_t fd_uart_usb;
 /** \brief File descriptor of the RS232 uart
  *
  * Device path /dev/serial/uart/2
  */
-static int32_t fd_uart2;
+static int32_t fd_uart_gsm;
 
 /** \brief Periodic Task Counter
  *
@@ -129,7 +129,7 @@ static int cola = 0;
 static int cabeza = 0;
 /*==================[Mutex UART GSM]===============================*/
 
-static uint8_t MutexUartGsm=FALSE;
+//static uint8_t MutexUartGsm=FALSE;
 
 /*==================[Variables Task GSM]===============================*/
 
@@ -169,11 +169,18 @@ char CIPSEND[]="AT+CIPSEND \r";
 char finrespuesta[]=" \r\n";
 char CIPSHUT[]="AT+CIPSHUT \r";
 
-char GPS[]="AT+CGPSINF=2 \r";
-char GPS_2[]="AT+CGPSINF=128 \r";
+//char GPS[]="AT+CGPSINF=2 \r";
+//char GPS_2[]="AT+CGPSINF=128 \r";
 char GPSPWR[]="AT+CGPSPWR=1 \r";
 char GPSRST[]="AT+CGPSRST=1 \r";
+char GPSOUT[]="AT+CGPSOUT=32 \r";
+char GPSIPR[]="AT+CGPSIPR=9600 \r";
+char GPGGA[]="GPGGA";
 
+char R_GPSPWR[]="AT+CGPSPWR=1 \r\r\nOK\r\n";
+char R_GPSRST[]="AT+CGPSRST=1 \r\r\nOK\r\n";
+char R_GPSOUT[]="AT+CGPSOUT=32 \r\r\nOK\r\n";
+char R_GPSIPR[]="AT+CGPSIPR=9600 \r\r\nOK\r\n";
 char R_GPS[]="AT+CGPSINF=2 \r\r\n2,000000,0.000000,N,0.000000,E,0,0,0.000000,0.000000,M,0.000000,M,,0000\r\nOK\r\n";
 char R_GPS_2[]="AT+CGPSINF=128 \r\r\n128,180255.000,19,09,2016,00,00\r\nOK\r\n";
 char R_CGATT[]="AT+CGATT? \r\r\n+CGATT: 1\r\n\r\nOK\r\n";
@@ -189,7 +196,7 @@ char R_CIPSEND[]="AT+CIPSEND \r\r\n";
 /*==================[Variables Task Gps]===============================*/
 enum ESTADOS_GPS
 			{
-				 ENCIENDO_GPS=0,LIBERO1,RESET_GPS,CONSULTO,LIBERO,ultimo_estado_gps
+				 ENCIENDO_GPS=0,FIN_GPS,ultimo_estado_gps
 			};
 int estado_gps=ENCIENDO_GPS;
 int i_gps=0;
@@ -261,34 +268,35 @@ TASK(InitTask)
    /* open CIAA digital outputs */
    fd_out = ciaaPOSIX_open("/dev/dio/out/0", ciaaPOSIX_O_RDWR);
 
-   /* open UART connected to RS232 connector */
-   fd_uart0 = ciaaPOSIX_open("/dev/serial/uart/0", ciaaPOSIX_O_RDWR);
+   /* open UART connected to gps(gpio1 y gpio2) connector */
+  // Chip_SCU_PinMux(6, 4, MD_PDN, FUNC2);              /* P6_4: UART0_TXD */
+  // Chip_SCU_PinMux(6, 5, MD_PLN|MD_EZI|MD_ZI, FUNC2); /* P6_5: UART0_RXD */
+
+   fd_uart_gps = ciaaPOSIX_open("/dev/serial/uart/0", ciaaPOSIX_O_RDWR);
 
    /* open UART connected to USB bridge (FT2232) */
-   fd_uart1 = ciaaPOSIX_open("/dev/serial/uart/1", ciaaPOSIX_O_RDWR);
+   fd_uart_usb = ciaaPOSIX_open("/dev/serial/uart/1", ciaaPOSIX_O_RDWR);
 
    /* open UART connected to RS232 connector */
-   fd_uart2 = ciaaPOSIX_open("/dev/serial/uart/2", ciaaPOSIX_O_RDWR);
+   fd_uart_gsm = ciaaPOSIX_open("/dev/serial/uart/2", ciaaPOSIX_O_RDWR);
 
    /* change baud rate for uart usb */
-   ciaaPOSIX_ioctl(fd_uart1, ciaaPOSIX_IOCTL_SET_BAUDRATE, (void *)ciaaBAUDRATE_115200);
+   ciaaPOSIX_ioctl(fd_uart_usb, ciaaPOSIX_IOCTL_SET_BAUDRATE, (void *)ciaaBAUDRATE_115200);
 
    /* change baud rate for RS232 */
-   /* NEW */
-   ciaaPOSIX_ioctl(fd_uart2, ciaaPOSIX_IOCTL_SET_BAUDRATE, (void *)ciaaBAUDRATE_9600);
+   ciaaPOSIX_ioctl(fd_uart_gsm, ciaaPOSIX_IOCTL_SET_BAUDRATE, (void *)ciaaBAUDRATE_9600);
 
-   /* change baud rate for RS485 */
-   /* NEW */
-   ciaaPOSIX_ioctl(fd_uart0, ciaaPOSIX_IOCTL_SET_BAUDRATE, (void *)ciaaBAUDRATE_115200);
+   /* change baud rate for GPS */
+   ciaaPOSIX_ioctl(fd_uart_gps, ciaaPOSIX_IOCTL_SET_BAUDRATE, (void *)ciaaBAUDRATE_9600);
 
    /* change FIFO TRIGGER LEVEL for uart usb */
-   ciaaPOSIX_ioctl(fd_uart2, ciaaPOSIX_IOCTL_SET_FIFO_TRIGGER_LEVEL, (void *)ciaaFIFO_TRIGGER_LEVEL3);
+   ciaaPOSIX_ioctl(fd_uart_gsm, ciaaPOSIX_IOCTL_SET_FIFO_TRIGGER_LEVEL, (void *)ciaaFIFO_TRIGGER_LEVEL3);
 
-   /* change FIFO TRIGGER LEVEL for RS485 */
-   ciaaPOSIX_ioctl(fd_uart0, ciaaPOSIX_IOCTL_SET_FIFO_TRIGGER_LEVEL, (void *)ciaaFIFO_TRIGGER_LEVEL3);
+   /* change FIFO TRIGGER LEVEL for GPS */
+   ciaaPOSIX_ioctl(fd_uart_gps, ciaaPOSIX_IOCTL_SET_FIFO_TRIGGER_LEVEL, (void *)ciaaFIFO_TRIGGER_LEVEL3);
 
    /* change FIFO TRIGGER LEVEL for RS232 */
-   ciaaPOSIX_ioctl(fd_uart1, ciaaPOSIX_IOCTL_SET_FIFO_TRIGGER_LEVEL, (void *)ciaaFIFO_TRIGGER_LEVEL3);
+   ciaaPOSIX_ioctl(fd_uart_usb, ciaaPOSIX_IOCTL_SET_FIFO_TRIGGER_LEVEL, (void *)ciaaFIFO_TRIGGER_LEVEL3);
 
    /* open CIAA ADC */
 //   fd_adc_2 = ciaaPOSIX_open("/dev/serial/aio/in/0", ciaaPOSIX_O_RDONLY);
@@ -308,7 +316,7 @@ TASK(InitTask)
    Periodic_Task_Counter = 0;
    SetRelAlarm(ActivateDigitalInTask, 200, 500); 	// Cada 500 ms
    SetRelAlarm(ActivateLedsTask, 100, 250);  		// Cada 250 ms
-   SetRelAlarm(ActivateGpsTask,15000, 1000);  		// Cada 1 s
+   SetRelAlarm(ActivateGpsTask,10000, 0);  			// Se activa 1 sola ves a los 10 segundos
 //   SetRelAlarm(ActivateEventTask,14600, 10000);  	// Cada 10 s
    /*Contadores a cero*/
    Contador_In1=0;
@@ -320,19 +328,85 @@ TASK(InitTask)
    pos_data.mes = 10;
    pos_data.anio = 1970;
    pos_data.hora= 101010;
-
+   ciaaPOSIX_write(fd_uart_usb, "Inicio programa \n\r",18 );
    /* Activates the SerialEchoTask task */
-   ActivateTask(SerialTask);
-   ActivateTask(GsmTask);
+   ActivateTask(SerialGsmTask);
+   ActivateTask(SerialGpsTask);
+   //ActivateTask(GsmTask);
    /* end InitTask */
    TerminateTask();
 }
+
 /** \brief Serial Task
  *
- * Esta tarea espera por datos que ingresen por fd_uart2, detecta si es una respuesta de comando y envia el evento correspondiente.
+ * Esta tarea espera por datos que ingresen por fd_uart_gsm, detecta si es una respuesta de comando y envia el evento correspondiente.
  *
  */
-TASK(SerialTask)
+TASK(SerialGpsTask)
+{
+   int8_t buf[5];   /* buffer for uart operation              */
+   int32_t ret;      /* return value variable for posix calls */
+   int8_t buf_aux[1];
+   int i=0;
+   int tipo_comando=0;
+   int fin_cadena=0;
+   ciaaPOSIX_memset(respuesta_gps, 0, sizeof(respuesta_gps));  		// Limpio cadena respuesta_gps
+   ciaaPOSIX_memset(buf, 0, sizeof(buf)); 							// Limpio el buffer
+
+   char *pch;
+   enum ESTADOS_SERIAL
+   			{
+   				 ESPERA=0,RESPUESTA,ultimo_estado_gsm
+   			};
+   int estado_serial=ESPERA;
+   while(1)
+   {
+      /* wait for any character ... */
+      ret = ciaaPOSIX_read(fd_uart_gps, buf, 5);
+
+       if(ret > 0)
+      {
+         /* also write them to the other device */
+#ifdef Test_SerialGpsTask
+    	  ciaaPOSIX_write(fd_uart_usb, buf, ret);   ///////////////////////para debug comandos
+#endif
+    	  for (i=0;i<ret;i++)
+		  {
+    		  switch ( estado_serial )
+			  {
+    		  	  case ESPERA:
+    		  	  {
+    		  		  if (buf[i] == '$') estado_serial=RESPUESTA;   // Si llega $ es una paquete de datos
+    		  		  break;
+    		  	  }
+    		  	  case RESPUESTA:
+				  {
+					  buf_aux[0]=buf[i];
+					  ciaaPOSIX_strcat(respuesta_gps, buf_aux);				// Copio buffer en cadena de respuesta
+					  if (buf[i] == '*')
+					  fin_cadena++;											// Busco caracteres que indican fin parcial de respuesta
+					  if (fin_cadena > 0)									// Si hay fin parcial de respuesta
+					  {
+						  //ciaaPOSIX_write(fd_uart_usb, "Llego posicion!! \n\r",18 );
+						  Guardo_datos_posicion(&pos_data,&statusgps);		//Parseo datos de la respuesta y los guardo
+						  ciaaPOSIX_memset(respuesta_gps, 0, sizeof(respuesta_gps));  // Limpio cadena respuesta
+						  fin_cadena=0;
+						  estado_serial=ESPERA;
+					  }
+					  break;
+				  }
+			  }
+		  }
+      }
+   }
+}
+
+/** \brief Serial Task
+ *
+ * Esta tarea espera por datos que ingresen por fd_uart_gsm, detecta si es una respuesta de comando y envia el evento correspondiente.
+ *
+ */
+TASK(SerialGsmTask)
 {
    int8_t buf[5];   /* buffer for uart operation              */
    int8_t buf_aux[1];
@@ -357,15 +431,15 @@ TASK(SerialTask)
    while(1)
    {
       /* wait for any character ... */
-      ret = ciaaPOSIX_read(fd_uart2, buf, 5);
+      ret = ciaaPOSIX_read(fd_uart_gsm, buf, 5);
 
       if(ret > 0)
       {
          /* also write them to the other device */
-#ifdef Test_SerialTask
-    	  ciaaPOSIX_write(fd_uart1, buf, ret);   ///////////////////////para debug comandos
+#ifdef Test_SerialGsmTask
+    	  ciaaPOSIX_write(fd_uart_usb, buf, ret);   ///////////////////////para debug comandos
 #endif
-    	  //ciaaPOSIX_strcat(respuesta, buf);			// Copio buffer en cadena de respuesta
+    	 //ciaaPOSIX_strcat(respuesta, buf);			// Copio buffer en cadena de respuesta
          for (i=0;i<ret;i++)
          {
 			 switch ( estado_serial )
@@ -410,14 +484,20 @@ TASK(SerialTask)
 						fin_cadena++;									// Busco caracteres que indican fin parcial de respuesta
 					if ((fin_cadena > 0) && (tipo_comando==0))			// Si hay fin parcial de respuesta
 					{
-						if (ciaaPOSIX_strncmp(respuesta,CGATT,8)==0)	tipo_comando=4;
+						if (ciaaPOSIX_strncmp(respuesta,CIPSEND,8)==0)	tipo_comando=1;
+						if (ciaaPOSIX_strncmp(respuesta,GPSOUT,8)==0)	tipo_comando=2;
+						if (ciaaPOSIX_strncmp(respuesta,GPSIPR,8)==0)	tipo_comando=2;
+						if (ciaaPOSIX_strncmp(respuesta,GPSRST,8)==0)	tipo_comando=2;
+						if (ciaaPOSIX_strncmp(respuesta,GPSPWR,8)==0)	tipo_comando=2;
 						if (ciaaPOSIX_strncmp(respuesta,APN,8)==0)		tipo_comando=2;
 						if (ciaaPOSIX_strncmp(respuesta,CIIR,8)==0)		tipo_comando=2;
 						if (ciaaPOSIX_strncmp(respuesta,CIFSR,8)==0)	tipo_comando=2;
 						if (ciaaPOSIX_strncmp(respuesta,CIPSHUT,10)==0)	tipo_comando=2;
+						//if (ciaaPOSIX_strncmp(respuesta,GPS,10)==0)		tipo_comando=3;
 						if (ciaaPOSIX_strncmp(respuesta,IP,10)==0)		tipo_comando=4;
-						if (ciaaPOSIX_strncmp(respuesta,CIPSEND,8)==0)	tipo_comando=1;
-						if (ciaaPOSIX_strncmp(respuesta,GPS,10)==0)		tipo_comando=3;
+						if (ciaaPOSIX_strncmp(respuesta,CGATT,8)==0)	tipo_comando=4;
+
+
 						if (tipo_comando==0)
 						{
 							ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
@@ -437,8 +517,12 @@ TASK(SerialTask)
 						if (ciaaPOSIX_strncmp(respuesta,R_CIIR,sizeof(R_CIIR))==0)				respuesta_ok=1;
 						if (ciaaPOSIX_strncmp(respuesta,R_CIFSR,8)==0)							respuesta_ok=1;
 						if (ciaaPOSIX_strncmp(respuesta,R_CIPSHUT,sizeof(R_CIPSHUT))==0)		respuesta_ok=1;
+						if (ciaaPOSIX_strncmp(respuesta,R_GPSPWR,sizeof(R_GPSPWR))==0)			respuesta_ok=2;
+						if (ciaaPOSIX_strncmp(respuesta,R_GPSOUT,sizeof(R_GPSOUT))==0)			respuesta_ok=2;
+						if (ciaaPOSIX_strncmp(respuesta,R_GPSIPR,sizeof(R_GPSIPR))==0)			respuesta_ok=2;
+						if (ciaaPOSIX_strncmp(respuesta,R_GPSRST,sizeof(R_GPSRST))==0)			respuesta_ok=2;
 					}
-					if ((tipo_comando==3) && (fin_cadena==3))   // Si es un comando del tipo 3, espero 3 /n para detectar fin de respuesta
+/*					if ((tipo_comando==3) && (fin_cadena==3))   // Si es un comando del tipo 3, espero 3 /n para detectar fin de respuesta
 					{
 						estado_serial=ESPERA;      							//Vuelvo a espera
 						Guardo_datos_posicion(&pos_data,&statusgps);		//Parseo datos de la respuesta y los guardo
@@ -447,23 +531,30 @@ TASK(SerialTask)
 						ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
 						fin_cadena=0;
 						tipo_comando=0;
-					}
+					}*/
 					if ((tipo_comando==4) && (fin_cadena==4))   // Si es un comando del tipo 4, espero 4 /n para detectar fin de respuesta
 					{
 						respuesta_recibida=1;
 						if (ciaaPOSIX_strncmp(respuesta,R_CGATT,sizeof(R_CGATT))==0)	respuesta_ok=1;
-						if (ciaaPOSIX_strncmp(respuesta,R_IP,sizeof(R_IP))==0)								respuesta_ok=1;
+						if (ciaaPOSIX_strncmp(respuesta,R_IP,sizeof(R_IP))==0)			respuesta_ok=1;
 					}
 
 					if (respuesta_recibida==1)   // Si encuentro respuesta, evio evento si es correcta o hay error
 					{
-						estado_serial=ESPERA;      							//Vuelvo a espera
+						estado_serial=ESPERA;      							//Vuelvo a esperar
 						if (respuesta_ok==1)
 						{
 							SetEvent(GsmTask, EVENTOK);
-						}else
+						}
+						else
 						{
-							SetEvent(GsmTask, EVENTERROR);
+							if (respuesta_ok==2)
+							{
+								SetEvent(GpsTask, EVENTOKGPS);
+							}else
+							{
+								SetEvent(GsmTask, EVENTERROR);
+							}
 						}
 						respuesta_ok=0;
 						respuesta_recibida=0;
@@ -513,7 +604,7 @@ TASK(DigitalInTask)
     *    Read inputs 0..3
     */
 	char message3[] = "Tarea Digital in\n";
-//   ciaaPOSIX_write(fd_uart1, message3, ciaaPOSIX_strlen(message3));
+//   ciaaPOSIX_write(fd_uart_usb, message3, ciaaPOSIX_strlen(message3));
 
    /* variables to store input/output status */
 	uint8_t inputs = 0, outputs = 0;
@@ -600,8 +691,8 @@ TASK(DigitalInTask)
 
 #ifdef Test_DigitalInTask
 	   char messageinestado[] = "Estado de las entradas: \r";
-	   ciaaPOSIX_write(fd_uart1, messageinestado, ciaaPOSIX_strlen(messageinestado));
-	   ciaaPOSIX_write(fd_uart1, valor_in, 4);
+	   ciaaPOSIX_write(fd_uart_usb, messageinestado, ciaaPOSIX_strlen(messageinestado));
+	   ciaaPOSIX_write(fd_uart_usb, valor_in, 4);
 #endif
    }
    /* Activates the SerialEchoTask task */
@@ -629,7 +720,7 @@ TASK(AnalogInTask)
 
    ciaaPOSIX_read(fd_adc_1, &adc_1, sizeof(adc_1));
 
-   //ciaaPOSIX_write(fd_uart1, hr_ciaaDac, ciaaPOSIX_strlen(hr_ciaaDac));
+//	 ciaaPOSIX_write(fd_uart_usb, hr_ciaaDac, ciaaPOSIX_strlen(hr_ciaaDac));
 //   ciaaPOSIX_ioctl(fd_adc_0, ciaaPOSIX_IOCTL_SET_CHANNEL, ciaaCHANNEL_2);
 //   ciaaPOSIX_read(fd_adc_0, &adc_2, sizeof(adc_2));
 
@@ -655,18 +746,18 @@ TASK(AnalogInTask)
 
 #ifdef Test_AnalogInTask
    char messageinestado[] = "\r Estado de las entradas analogicas:  ";
-   ciaaPOSIX_write(fd_uart1, messageinestado, ciaaPOSIX_strlen(messageinestado));
+   ciaaPOSIX_write(fd_uart_usb, messageinestado, ciaaPOSIX_strlen(messageinestado));
    char str[4];
    itoa(valor_ch1,str,10);
-   ciaaPOSIX_write(fd_uart1, str,ciaaPOSIX_strlen(str));
+   ciaaPOSIX_write(fd_uart_usb, str,ciaaPOSIX_strlen(str));
    char messageinestado2[] = "    ";
-   ciaaPOSIX_write(fd_uart1, messageinestado2, ciaaPOSIX_strlen(messageinestado2));
+   ciaaPOSIX_write(fd_uart_usb, messageinestado2, ciaaPOSIX_strlen(messageinestado2));
    itoa(valor_ch3,str,10);
-   ciaaPOSIX_write(fd_uart1, str,ciaaPOSIX_strlen(str));
+   ciaaPOSIX_write(fd_uart_usb, str,ciaaPOSIX_strlen(str));
    if ((estado_ch1|estado_ch3) == 1)
    {
 	   char messageinestado1[] = "\r --Evento por cambio de estado!!!  ";
-	   ciaaPOSIX_write(fd_uart1, messageinestado1, ciaaPOSIX_strlen(messageinestado1));
+	   ciaaPOSIX_write(fd_uart_usb, messageinestado1, ciaaPOSIX_strlen(messageinestado1));
    }
 #endif
 
@@ -693,7 +784,7 @@ TASK(ModBusTask)
     *    Blink output 4
     */
    char message5[] = "Tarea Mod bus \r";
- //  ciaaPOSIX_write(fd_uart1, message5, ciaaPOSIX_strlen(message5));
+ //  ciaaPOSIX_write(fd_uart_usb, message5, ciaaPOSIX_strlen(message5));
    /* variables to store input/output status */
    ciaaPOSIX_printf("ModBusTask");
 
@@ -778,20 +869,46 @@ TASK(GsmTask)
 		{
 			case RED:                                          				// Consulto si hay conexion a la red gsm
 			{
-				if (MutexUartGsm==FALSE)										//Si esta libre el Semaforo uart gsm
+				ciaaPOSIX_write(fd_uart_gsm, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
+				SetRelAlarm(SetEventTimeOut, 2000, 0);						//Activo time out 2 segundos
+				WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				//Espero respuesta
+				GetEvent(GsmTask, &Events);
+				ClearEvent(Events);
+				if (Events & EVENTOK)
 				{
-					MutexUartGsm=TRUE;											//Tomo semaforo
-					ciaaPOSIX_write(fd_uart2, CGATT, ciaaPOSIX_strlen(CGATT));  //Consulto si tiene señal gprs
-					SetRelAlarm(SetEventTimeOut, 2000, 0);						//Activo time out 2 segundos
-					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				//Espero respuesta
-					MutexUartGsm=FALSE;											//Libero Recurso
+					CancelAlarm(SetEventTimeOut);
+					estado_gsm = SET;								//Si tiene red seteo parametros,Sino vuelvo a consultar
+					statusgsm=1;
+				}
+				if (Events & EVENTERROR)
+				{
+					CancelAlarm(SetEventTimeOut);
+					SetRelAlarm(SetEventTimeOut, 1000, 0);			//Activo time out 2 segundos
+					WaitEvent(EVENTTIMEOUT);
+					GetEvent(GsmTask, &Events);
+					ClearEvent(Events);
+					statusgsm=0;
+				}
+				break;
+			}
+
+			case SET:
+			{
+				if(x==1) ciaaPOSIX_write(fd_uart_gsm, APN, ciaaPOSIX_strlen(APN)); 			 //Consulto si tiene señal gprs
+				if(x==2) ciaaPOSIX_write(fd_uart_gsm, CIIR, ciaaPOSIX_strlen(CIIR));  		 //Consulto si tiene señal gprs "AT+CIICR";
+				if(x==3) ciaaPOSIX_write(fd_uart_gsm, CIFSR, ciaaPOSIX_strlen(CIFSR));  	 //Consulto si tiene señal gprs "AT+CIFSR";
+				if(x==4) ciaaPOSIX_write(fd_uart_gsm, CIPSHUT, ciaaPOSIX_strlen(CIPSHUT));
+				if(x==5) ciaaPOSIX_write(fd_uart_gsm, IP, ciaaPOSIX_strlen(IP)); 		 	 //Configuro ip y puerto ;
+				if(x<6)
+				{
+					SetRelAlarm(SetEventTimeOut, 6000, 0);				//Activo time out 2 segundos
+					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);		//Espero respuesta
 					GetEvent(GsmTask, &Events);
 					ClearEvent(Events);
 					if (Events & EVENTOK)
 					{
 						CancelAlarm(SetEventTimeOut);
-						estado_gsm = SET;								//Si tiene red seteo parametros,Sino vuelvo a consultar
-						statusgsm=1;
+						x++;											// Si respuesta es correcta envio siguiente comando
 					}
 					if (Events & EVENTERROR)
 					{
@@ -800,52 +917,14 @@ TASK(GsmTask)
 						WaitEvent(EVENTTIMEOUT);
 						GetEvent(GsmTask, &Events);
 						ClearEvent(Events);
-						statusgsm=0;
-					}
-				}
-				break;
-			}
-
-			case SET:
-			{
-				if (MutexUartGsm==FALSE)										//Si esta libre el Semaforo uart gsm
-				{
-					MutexUartGsm=TRUE;														 //Tomo recurso
-					if(x==1) ciaaPOSIX_write(fd_uart2, APN, ciaaPOSIX_strlen(APN)); 		 //Consulto si tiene señal gprs
-					if(x==2) ciaaPOSIX_write(fd_uart2, CIIR, ciaaPOSIX_strlen(CIIR));  		 //Consulto si tiene señal gprs "AT+CIICR";
-					if(x==3) ciaaPOSIX_write(fd_uart2, CIFSR, ciaaPOSIX_strlen(CIFSR));  	 //Consulto si tiene señal gprs "AT+CIFSR";
-					if(x==4) ciaaPOSIX_write(fd_uart2, CIPSHUT, ciaaPOSIX_strlen(CIPSHUT));
-					if(x==5) ciaaPOSIX_write(fd_uart2, IP, ciaaPOSIX_strlen(IP)); 		 	 //Configuro ip y puerto ;
-					if(x<6)
-					{
-						SetRelAlarm(SetEventTimeOut, 6000, 0);				//Activo time out 2 segundos
-						WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);		//Espero respuesta
-						MutexUartGsm=FALSE;									//Libero Recurso
-						GetEvent(GsmTask, &Events);
-						ClearEvent(Events);
-						if (Events & EVENTOK)
-						{
-							CancelAlarm(SetEventTimeOut);
-							x++;											// Si respuesta es correcta envio siguiente comando
-						}
-						if (Events & EVENTERROR)
-						{
-							CancelAlarm(SetEventTimeOut);
-							SetRelAlarm(SetEventTimeOut, 1000, 0);			//Activo time out 2 segundos
-							WaitEvent(EVENTTIMEOUT);
-							GetEvent(GsmTask, &Events);
-							ClearEvent(Events);
-							estado_gsm = RED;								// Si hay error comienzo nuevamente el ciclo
-						}
+						estado_gsm = RED;								// Si hay error comienzo nuevamente el ciclo
 					}
 				}
 				if(x>=6)
 				{
 					estado_gsm = SEND;
 					x=7;
-					MutexUartGsm=FALSE;									//Libero Recurso
 				}
-
 				SetRelAlarm(SetEventTimeOut, 2000, 0);				//Activo time out 2000 mseg para envio entre comandos
 				WaitEvent(EVENTTIMEOUT);							//Espero respuesta
 				GetEvent(GsmTask, &Events);
@@ -857,46 +936,39 @@ TASK(GsmTask)
 			{
 				if (Send_Event == 1 || items > 0)                               // Si hay paquete_1s pendientes o en cola
 				{
-					if (MutexUartGsm==FALSE)										//Si esta libre el Semaforo uart gsm
+					ciaaPOSIX_write(fd_uart_gsm, CIPSEND, ciaaPOSIX_strlen(CIPSEND)); 	// Envio datos
+					SetRelAlarm(SetEventTimeOut, 3000, 0);						// Activo time out 3 segundos
+					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				// Espero respuesta
+					GetEvent(GsmTask, &Events);
+					ClearEvent(Events);
+					if (Events & EVENTOK)
 					{
-						MutexUartGsm=TRUE;											 	//Tomo recurso
-						ciaaPOSIX_write(fd_uart2, CIPSEND, ciaaPOSIX_strlen(CIPSEND)); 	// Envio datos
-
-						SetRelAlarm(SetEventTimeOut, 3000, 0);						// Activo time out 3 segundos
-						WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);				// Espero respuesta
-						MutexUartGsm=FALSE;											// Libero Recurso
+						CancelAlarm(SetEventTimeOut);
+						if (Send_Event == 0)
+						{
+							ciaaPOSIX_memset(paquete_1, 0, sizeof(paquete_1));   // Limpio paquete_1 de datos
+							ciaaPOSIX_memset(paquete_2, 0, sizeof(paquete_2));
+							get(&send_data,&cola,&cabeza,&items); 			 // Si no hay paquete_1 pendiente, lo saco de la cola y lo formateo
+							genero_paquete(send_data,paquete_1,paquete_2);
+						}
+						ciaaPOSIX_write(fd_uart_gsm, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
+#ifdef Test_GSM
+ciaaPOSIX_write(fd_uart_usb, paquete_1, ciaaPOSIX_strlen(paquete_1));
+ciaaPOSIX_write(fd_uart_usb, paquete_2, ciaaPOSIX_strlen(paquete_2));
+#endif
+						Send_Event = 1;
+						estado_gsm = ACKNOLEGE;
+					}
+					if (Events & EVENTERROR)
+					{
+						CancelAlarm(SetEventTimeOut);
+						SetRelAlarm(SetEventTimeOut, 1000, 0);					//Activo time out 2 segundos
+						WaitEvent(EVENTTIMEOUT);
 						GetEvent(GsmTask, &Events);
 						ClearEvent(Events);
-						if (Events & EVENTOK)
-						{
-							CancelAlarm(SetEventTimeOut);
-							if (Send_Event == 0)
-							{
-								ciaaPOSIX_memset(paquete_1, 0, sizeof(paquete_1));   // Limpio paquete_1 de datos
-								ciaaPOSIX_memset(paquete_2, 0, sizeof(paquete_2));
-								get(&send_data,&cola,&cabeza,&items); 			 // Si no hay paquete_1 pendiente, lo saco de la cola y lo formateo
-								genero_paquete(send_data,paquete_1,paquete_2);
-							}
-							ciaaPOSIX_write(fd_uart2, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
-#ifdef Test_GSM
-	ciaaPOSIX_write(fd_uart1, paquete_1, ciaaPOSIX_strlen(paquete_1));
-	ciaaPOSIX_write(fd_uart1, paquete_2, ciaaPOSIX_strlen(paquete_2));
-#endif
-							Send_Event = 1;
-							estado_gsm = ACKNOLEGE;
-						}
-						if (Events & EVENTERROR)
-						{
-							CancelAlarm(SetEventTimeOut);
-							SetRelAlarm(SetEventTimeOut, 1000, 0);					//Activo time out 2 segundos
-							WaitEvent(EVENTTIMEOUT);
-							GetEvent(GsmTask, &Events);
-							ClearEvent(Events);
-							estado_gsm = RED;										// Si hay error comienzo nuevamente el ciclo
-						}
+						estado_gsm = RED;										// Si hay error comienzo nuevamente el ciclo
 					}
 				}
-				// si no hay eventos por enviar 0 el mutex esta ocupado espero 1 segundo
 				SetRelAlarm(SetEventTimeOut, 1000, 0);
 				WaitEvent(EVENTTIMEOUT);
 				GetEvent(GsmTask, &Events);
@@ -914,17 +986,17 @@ TASK(GsmTask)
 				if (Events & EVENTACK)
 				{
 					CancelAlarm(SetEventTimeOut);
-					//////ciaaPOSIX_write(fd_uart1, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
-					ciaaPOSIX_write(fd_uart2, finrespuesta, ciaaPOSIX_strlen(finrespuesta)); 	// Caracteres de fin de respuesta, para que se borre buffer de respuesta en tarea serial task
+					//////ciaaPOSIX_write(fd_uart_usb, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
+					ciaaPOSIX_write(fd_uart_gsm, finrespuesta, ciaaPOSIX_strlen(finrespuesta)); 	// Caracteres de fin de respuesta, para que se borre buffer de respuesta en tarea serial task
 					Send_Event = 0;
 					estado_gsm = SEND;
 #ifdef Test_GSM
-	ciaaPOSIX_write(fd_uart1, "llego ack \n\r",13 );
+	ciaaPOSIX_write(fd_uart_usb, "llego ack \n\r",13 );
 #endif
 				}
 				if (Events & EVENTTIMEOUT)
 				{
-					//ciaaPOSIX_write(fd_uart2,CIPSHUT, ciaaPOSIX_strlen(CIPSHUT)); 	// Cierro la sesion de IP
+					//ciaaPOSIX_write(fd_uart_gsm,CIPSHUT, ciaaPOSIX_strlen(CIPSHUT)); 	// Cierro la sesion de IP
 					estado_gsm = RED;
 					x=4;
 				}
@@ -940,60 +1012,59 @@ TASK(GpsTask)
    /*
     *    Consulta datos de posicion, fecha y hora.
     */
-	switch ( estado_gps )
-	 {
-		case ENCIENDO_GPS:
-		{
-			if (MutexUartGsm==FALSE)									//Si esta libre el Semaforo uart gsm
-			{
-				MutexUartGsm=TRUE;
-				ciaaPOSIX_write(fd_uart2, GPSPWR, ciaaPOSIX_strlen(GPSPWR)); //Consulto posicion
-				estado_gps=LIBERO1;
-			}
-			break;
-		}
-		case LIBERO1:
-		{
-			MutexUartGsm=FALSE;										//Libero Recurso
-			estado_gps=RESET_GPS;
-			break;
-		}
-		case RESET_GPS:
-		{
-			if (MutexUartGsm==FALSE)									//Si esta libre el Semaforo uart gsm
-			{
-				MutexUartGsm=TRUE;
-				ciaaPOSIX_write(fd_uart2, GPSRST, ciaaPOSIX_strlen(GPSRST)); //Consulto posicion
-				estado_gps=LIBERO;
-			}
-			break;
-		}
-		case CONSULTO:
-		{
-			 if (MutexUartGsm==FALSE)									//Si esta libre el Semaforo uart gsm
-			 {
-				 MutexUartGsm=TRUE;
-				 if (i_gps==10)
-				 {
-					 ciaaPOSIX_write(fd_uart2, GPS_2, ciaaPOSIX_strlen(GPS_2)); //Consulto posicion
-					 i_gps=0;
-				 }else
-				 {
-					 ciaaPOSIX_write(fd_uart2, GPS, ciaaPOSIX_strlen(GPS)); //Consulto Fecha
-					 i_gps++;
-				 }
-				 estado_gps=LIBERO;
-			 }
-			 break;
-		 }
-		 case LIBERO:
+
+	EventMaskType Events;
+	int x=1;
+	while (1){
+		switch ( estado_gps )
 		 {
-			 MutexUartGsm=FALSE;										//Libero Recurso
-			 estado_gps=CONSULTO;
-			 break;
+			case ENCIENDO_GPS:
+			{
+				if(x==1) ciaaPOSIX_write(fd_uart_gsm, GPSIPR, ciaaPOSIX_strlen(GPSIPR)); 		 // CONFIGURO SALIDA A 9600
+				if(x==2) ciaaPOSIX_write(fd_uart_gsm, GPSOUT, ciaaPOSIX_strlen(GPSOUT));  		 // ACTIVO PAQUETE GPGGA;
+				if(x==3) ciaaPOSIX_write(fd_uart_gsm, GPSPWR, ciaaPOSIX_strlen(GPSPWR));	  	 // ENCIENDO MODULO GPS;
+				if(x==4) ciaaPOSIX_write(fd_uart_gsm, GPSRST, ciaaPOSIX_strlen(GPSRST));		 // RESET MODULO GPS
+				if(x<5)
+				{
+					SetRelAlarm(SetEventTimeOutgps, 1000, 0);				//Activo time out 2 segundos
+					WaitEvent(EVENTOKGPS | EVENTTIMEOUTGPS);					//Espero respuesta
+					GetEvent(GpsTask, &Events);
+					ClearEvent(Events);
+					if (Events & EVENTOKGPS)
+					{
+						CancelAlarm(SetEventTimeOutgps);
+						x++;											// Si respuesta es correcta envio siguiente comando
+					}
+	/*				if (Events & EVENTERROR)
+					{
+						CancelAlarm(SetEventTimeOut);
+						SetRelAlarm(SetEventTimeOut, 1000, 0);			//Activo time out 2 segundos
+						WaitEvent(EVENTTIMEOUT);
+						GetEvent(GsmTask, &Events);
+						ClearEvent(Events);
+						//estado_gsm = RED;								// Si hay error comienzo nuevamente el ciclo
+					}*/
+				}
+				if(x>=5)
+				{
+					estado_gps = FIN_GPS;
+					x=0;
+				}
+				SetRelAlarm(SetEventTimeOutgps, 500, 0);				//Activo time out 2000 mseg para envio entre comandos
+				WaitEvent(EVENTTIMEOUTGPS);							//Espero respuesta
+				GetEvent(GpsTask, &Events);
+				ClearEvent(Events);
+				break;
+			}
+			case FIN_GPS:
+			{
+				estado_gps=ENCIENDO_GPS;
+				ActivateTask(GsmTask);
+				TerminateTask();				//TERMINO TAREA GPS
+				break;
+			}
 		 }
-	 }
-   TerminateTask();
+	}
 }
 
 TASK(EventTask)

@@ -196,8 +196,8 @@ static void ciaa_lpc4337_gpio_init(void)
 
    /* EDU-CIAA-NXP GPIOs as outputs */
    Chip_SCU_PinMux(6,1,MD_PUP|MD_EZI,FUNC0);  /* GPIO3[0], GPIO0 */
-   Chip_SCU_PinMux(6,4,MD_PUP|MD_EZI,FUNC0);  /* GPIO3[3], GPIO1 */
-   Chip_SCU_PinMux(6,5,MD_PUP|MD_EZI,FUNC0);  /* GPIO3[4], GPIO2 */
+   //Chip_SCU_PinMux(6,4,MD_PUP|MD_EZI,FUNC0);  /* GPIO3[3], GPIO1 */
+   //Chip_SCU_PinMux(6,5,MD_PUP|MD_EZI,FUNC0);  /* GPIO3[4], GPIO2 */
 
    Chip_GPIO_SetDir(LPC_GPIO_PORT, 3,(1<<0)|(1<<3)|(1<<4),1);
    Chip_GPIO_ClearValue(LPC_GPIO_PORT, 3,(1<<0)|(1<<3)|(1<<4));

@@ -153,12 +153,17 @@ static void ciaaDriverUart_hwInit(void)
 
    Chip_UART_TXEnable(LPC_USART0);
 
-   Chip_SCU_PinMux(9, 5, MD_PDN, FUNC7);              /* P9_5: UART0_TXD */
-   Chip_SCU_PinMux(9, 6, MD_PLN|MD_EZI|MD_ZI, FUNC7); /* P9_6: UART0_RXD */
+//	 Saco uart0 por pines GPIO1 y GPIO2 (funcion 2)
 
-   Chip_UART_SetRS485Flags(LPC_USART0, UART_RS485CTRL_DCTRL_EN | UART_RS485CTRL_OINV_1);
+   Chip_SCU_PinMux(6, 4, MD_PDN, FUNC2);              /* P6_4: UART0_TXD */
+   Chip_SCU_PinMux(6, 5, MD_PLN|MD_EZI|MD_ZI, FUNC2); /* P6_5: UART0_RXD */
 
-   Chip_SCU_PinMux(6, 2, MD_PDN, FUNC2);              /* P6_2: UART0_DIR */
+//   Chip_SCU_PinMux(9, 5, MD_PDN, FUNC7);              /* P9_5: UART0_TXD */
+//   Chip_SCU_PinMux(9, 6, MD_PLN|MD_EZI|MD_ZI, FUNC7); /* P9_6: UART0_RXD */
+
+//   Chip_UART_SetRS485Flags(LPC_USART0, UART_RS485CTRL_DCTRL_EN | UART_RS485CTRL_OINV_1);
+
+//   Chip_SCU_PinMux(6, 2, MD_PDN, FUNC2);              /* P6_2: UART0_DIR */
 
    /* UART2 (USB-UART) */
    Chip_UART_Init(LPC_USART2);
