@@ -175,13 +175,13 @@ int atoi(char *str)
 //Guardo datos posicion en pos_data
 void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 {
-	char GGA[]="GPGGA";
-	char RMC[]="GPRMC";
+	char GGA[]="$GPGGA";
+	char RMC[]="$GPRMC";
 	char *pch;
 	double aux1,aux2;
 	int fecha;
-	int8_t respuesta1[]="AT+CGPSINF=2\r\r\n2,180231,3437.130250,S,5824.354484,W,1,7,1.348750,45.631660,M,14.588299,M,,0000\r\nOK\r";
-	//	                          $GPGGA,150212.000,3443.011810,S,05818.595681,W,1,5,3.44,0.983,M,14.456,M,,*5B
+	//int8_t respuesta1[]="AT+CGPSINF=2\r\r\n2,180231,3437.130250,S,5824.354484,W,1,7,1.348750,45.631660,M,14.588299,M,,0000\r\nOK\r";
+	int8_t respuesta_gps[]="$GPGGA,150212.000,3443.011810,S,05818.595681,W,1,5,3.44,0.983,M,14.456,M,,*5B";
 
 	//$GPRMC,134907.991,V,,,,,,,031016,,,N*41
 	//$GPRMC,135032.000,A,3443.005606,S,05818.572033,W,0.000,0.0,010517,,,A*64
@@ -314,7 +314,10 @@ void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2)
 	ciaaPOSIX_strcat(paq2, str);				// Copio n� log para ack
 
 	ciaaPOSIX_strcat(paq2, str3);				// Copio Fin de Paquete3
-return;
+	//SACO POR CONSOLA PARA TEST//
+	ciaaPOSIX_printf("Paquete1: %s,%s\n",paq1,paq2);
+
+	return;
 }
 
 void genero_paquete_RUS07(struct DATOS_POSICION p,char *paq1,char *paq2)
@@ -360,7 +363,8 @@ void genero_paquete_RUS07(struct DATOS_POSICION p,char *paq1,char *paq2)
 	ciaaPOSIX_strcat(paq2, str);				// Copio n� log para ack
 
 	ciaaPOSIX_strcat(paq2, str3);				// Copio Fin de Paquete3
-return;
+	ciaaPOSIX_printf("Paquete1: %s,%s\n",paq1,paq2);
+	return;
 }
 void genero_paquete_PI(struct DATOS_POSICION p,char *paq1,char *paq2)
 {

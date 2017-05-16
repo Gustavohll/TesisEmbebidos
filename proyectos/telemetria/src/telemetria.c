@@ -333,6 +333,14 @@ TASK(InitTask)
    ActivateTask(SerialGsmTask);
    ActivateTask(SerialGpsTask);
    //ActivateTask(GsmTask);
+
+   //TEST FUNCIONES//
+   Guardo_datos_posicion(&pos_data,&statusgps);		 //Parseo datos de posicion gps y los guardo pos_data
+   put(pos_data,&cola,&cabeza,&items);				 //guardo pos_data en cola de envio
+   get(&send_data,&cola,&cabeza,&items); 			 //saco de la cola y actuliso send_data
+   genero_paquete(send_data,paquete_1,paquete_2);	 //Imprimo send_data con el formato del paquete a enviar
+   genero_paquete_RUS07(send_data,paquete_1,paquete_2);	 //Imprimo send_data con el formato del paquete a enviar
+
    /* end InitTask */
    TerminateTask();
 }
