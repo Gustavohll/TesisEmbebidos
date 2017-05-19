@@ -328,6 +328,7 @@ TASK(InitTask)
    pos_data.mes = 10;
    pos_data.anio = 1970;
    pos_data.hora= 101010;
+   pos_data.fecha=101070;
    ciaaPOSIX_write(fd_uart_usb, "Inicio programa \n\r",18 );
    /* Activates the SerialEchoTask task */
    ActivateTask(SerialGsmTask);
@@ -338,7 +339,7 @@ TASK(InitTask)
    Guardo_datos_posicion(&pos_data,&statusgps);		 //Parseo datos de posicion gps y los guardo pos_data
    put(pos_data,&cola,&cabeza,&items);				 //guardo pos_data en cola de envio
    get(&send_data,&cola,&cabeza,&items); 			 //saco de la cola y actuliso send_data
-   genero_paquete(send_data,paquete_1,paquete_2);	 //Imprimo send_data con el formato del paquete a enviar
+   //genero_paquete(send_data,paquete_1,paquete_2);	 //Imprimo send_data con el formato del paquete a enviar
    genero_paquete_RUS07(send_data,paquete_1,paquete_2);	 //Imprimo send_data con el formato del paquete a enviar
 
    /* end InitTask */

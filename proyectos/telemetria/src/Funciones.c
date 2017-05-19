@@ -182,7 +182,7 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 	int fecha;
 	//int8_t respuesta1[]="AT+CGPSINF=2\r\r\n2,180231,3437.130250,S,5824.354484,W,1,7,1.348750,45.631660,M,14.588299,M,,0000\r\nOK\r";
 	int8_t respuesta_gps[]="$GPGGA,150212.000,3443.011810,S,05818.595681,W,1,5,3.44,0.983,M,14.456,M,,*5B";
-
+	int8_t respuesta_gps2[]="$GPRMC,135032.000,A,3443.005606,S,05818.572033,W,0.000,0.0,010517,,,A*64";
 	//$GPRMC,134907.991,V,,,,,,,031016,,,N*41
 	//$GPRMC,135032.000,A,3443.005606,S,05818.572033,W,0.000,0.0,010517,,,A*64
 	//	int8_t respuesta1[]="AT+CGPSINF=128 \r\r\n128,180255.000,19,09,2016,00,00\r\nOK\r\n";
@@ -212,35 +212,31 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
         //p->hora = 112233;
         //p->anio = 2016;
     }
+
+	pch = strtok(respuesta_gps2,",");
 	if (ciaaPOSIX_strncmp(pch,RMC,5)==0)
 	{
 		//$GPRMC,135032.000,A,3443.005606,S,05818.572033,W,0.000,0.0,010517,,,A*64
 		pch = strtok (NULL, ".");     		 // Pasamos al siguiente intervalo cortado de la respuesta
-		p->hora = atoi(pch);			 	 // Guardo la parte entera del TIEMPO
+		//p->hora = atoi(pch);			 	 // Guardo la parte entera del TIEMPO
 		pch = strtok (NULL, ",");
 		pch = strtok (NULL, ",");
-		p->validity = atoi(pch);		 	 // Guardo si la posicion es valida (A) o no (V)
-		*statusgps = p->validity;
+		//p->validity = atoi(pch);		 	 // Guardo si la posicion es valida (A) o no (V)
+		//*statusgps = p->validity;
 		pch = strtok (NULL, ".");
-		p->Lat = atoi(pch);
+		//p->Lat = atoi(pch);
 		pch = strtok (NULL, ",");
-		p->DecLat = atoi(pch);
+		//p->DecLat = atoi(pch);
 		pch = strtok (NULL, ",");
 		pch = strtok (NULL, ".");
-		p->Long = atoi(pch);
+		//p->Long = atoi(pch);
 		pch = strtok (NULL, ",");
-		p->DecLong = atoi(pch);
+		//p->DecLong = atoi(pch);
 		pch = strtok (NULL, ",");
 		pch = strtok (NULL, ",");
 		pch = strtok (NULL, ",");
 		pch = strtok (NULL, ",");
 		p->fecha = atoi(pch);			 // Guardo la fecha e formato ddmmaa
-/*		if(fecha < 2016)
-		{
-			p->dia = 10;
-			p->mes = 10;
-			p->anio = 1970;
-		}*/
 	}
     return;
 }
@@ -254,6 +250,7 @@ void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2)
 	char str2[25]=";ID=C001;#IP0:";
 	char str3[25]="< \x1A";
 	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
+	if (p.hora < 100000) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.hora,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
 	/*if (p.dia < 10) ciaaPOSIX_strcat(paq1, "0");
@@ -265,6 +262,7 @@ void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2)
 	itoa(p.anio,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio año en paquete
 	*/
+	if (p.fecha < 100000) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.fecha,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio fecha en paquete
 	ciaaPOSIX_strcat(paq1, ",-");
@@ -319,7 +317,7 @@ void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2)
 
 	return;
 }
-
+//>RUS07,T,1502120,,V,0,W,0,X,0,Y,0,Z,0,a,0,b,0,0;ID=C001;#IP0:9987<
 void genero_paquete_RUS07(struct DATOS_POSICION p,char *paq1,char *paq2)
 {
 	//char paq1[200];
@@ -327,8 +325,10 @@ void genero_paquete_RUS07(struct DATOS_POSICION p,char *paq1,char *paq2)
 	char str2[25]=";ID=C001;#IP0:";
 	char str3[25]="< \x1A";
 	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
+	if (p.hora < 100000) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.hora,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
+	if (p.fecha < 100000) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.fecha,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio fecha en paquete
 	ciaaPOSIX_strcat(paq2, ",V,");
@@ -352,9 +352,9 @@ void genero_paquete_RUS07(struct DATOS_POSICION p,char *paq1,char *paq2)
 	ciaaPOSIX_strcat(paq2, ",b,");
 	itoa(p.Modbus,str,10);
 	ciaaPOSIX_strcat(paq2, str);				// Copio Modbus en paquete
-	ciaaPOSIX_strcat(paq2, ",");
-	itoa(p.event,str,10);
-	ciaaPOSIX_strcat(paq2, str);				// Copio n° de paquete
+	//ciaaPOSIX_strcat(paq2, ",");
+	//itoa(p.event,str,10);
+	//ciaaPOSIX_strcat(paq2, str);				// Copio n° de paquete
 	ciaaPOSIX_strcat(paq2, str2);				// Copio Fin de Paquete1
 	if (p.log < 1000) ciaaPOSIX_strcat(paq2, "0");
 	if (p.log < 100)  ciaaPOSIX_strcat(paq2, "0");
@@ -363,7 +363,7 @@ void genero_paquete_RUS07(struct DATOS_POSICION p,char *paq1,char *paq2)
 	ciaaPOSIX_strcat(paq2, str);				// Copio n� log para ack
 
 	ciaaPOSIX_strcat(paq2, str3);				// Copio Fin de Paquete3
-	ciaaPOSIX_printf("Paquete1: %s,%s\n",paq1,paq2);
+	ciaaPOSIX_printf("Paquete1: %s%s\n",paq1,paq2);
 	return;
 }
 void genero_paquete_PI(struct DATOS_POSICION p,char *paq1,char *paq2)
