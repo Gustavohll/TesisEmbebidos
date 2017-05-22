@@ -200,11 +200,13 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
         p->Lat = atoi(pch);
         pch = strtok (NULL, ",");
         p->DecLat = atoi(pch);
+        p->DecLat = (p->DecLat/1000);
         pch = strtok (NULL, ",");
         pch = strtok (NULL, ".");
         p->Long = atoi(pch);
         pch = strtok (NULL, ",");
         p->DecLong = atoi(pch);
+        p->DecLong = (p->DecLong/10000);
         pch = strtok (NULL, ",");
         pch = strtok (NULL, ",");
         p->validity = atoi(pch);		 			 // Guardo si la posicion es valida (A) o no (V)
@@ -371,22 +373,30 @@ void genero_paquete_PI(struct DATOS_POSICION p,char *paq1,char *paq2)
 	//char paq1[200];
 //	RPI241207150026-3460180-05847823156025106 0000101311210000000720F500
 
-	char str[10]=">RPI,";
+	char str[10]=">RPI";
 	char str2[25]=";ID=C001;#IP0:";
 	char str3[25]="< \x1A";
 	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
+	if (p.fecha < 100000) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.fecha,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio fecha en paquete
+	if (p.hora < 100000) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.hora,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
-	ciaaPOSIX_strcat(paq1, ",-");
+	ciaaPOSIX_strcat(paq1, "-");
 	itoa(p.Lat,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio Lat en paquete
+	if (p.DecLat < 100) ciaaPOSIX_strcat(paq1, "0");
+	if (p.DecLat < 10) ciaaPOSIX_strcat(paq1, "0");
+	if (p.DecLat < 1) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.DecLat,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio DecLat en paquete
 	ciaaPOSIX_strcat(paq1, "-0");
 	itoa(p.Long,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio Long en paquete
+	if (p.DecLong < 100) ciaaPOSIX_strcat(paq1, "0");
+	if (p.DecLong < 10) ciaaPOSIX_strcat(paq1, "0");
+	if (p.DecLong < 1) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.DecLong,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio DecLong en paquete
 	ciaaPOSIX_strcat(paq1, "156025106000");
@@ -402,6 +412,52 @@ void genero_paquete_PI(struct DATOS_POSICION p,char *paq1,char *paq2)
 	ciaaPOSIX_strcat(paq1, str);				// Copio n� log para ack
 
 	ciaaPOSIX_strcat(paq1, str3);				// Copio Fin de Paquete3
+	ciaaPOSIX_printf("PaqueteRPI: %s%s\n",paq1,paq2);
+return;
+}
+
+void genero_paquete_GP(struct DATOS_POSICION p,char *paq1,char *paq2)
+{
+//  char paq1[200];
+//	RGP210517150104-3493011-058374710000663FF4F00
+
+	char str[10]=">RGP";
+	char str2[25]=";ID=C001;#IP0:";
+	char str3[25]="< \x1A";
+	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
+	if (p.fecha < 100000) ciaaPOSIX_strcat(paq1, "0");
+	itoa(p.fecha,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio fecha en paquete
+	if (p.hora < 100000) ciaaPOSIX_strcat(paq1, "0");
+	itoa(p.hora,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
+	ciaaPOSIX_strcat(paq1, "-");
+	itoa(p.Lat,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio Lat en paquete
+	if (p.DecLat < 100) ciaaPOSIX_strcat(paq1, "0");
+	if (p.DecLat < 10) ciaaPOSIX_strcat(paq1, "0");
+	if (p.DecLat < 1) ciaaPOSIX_strcat(paq1, "0");
+	itoa(p.DecLat,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio DecLat en paquete
+	ciaaPOSIX_strcat(paq1, "-0");
+	itoa(p.Long,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio Long en paquete
+	if (p.DecLong < 100) ciaaPOSIX_strcat(paq1, "0");
+	if (p.DecLong < 10) ciaaPOSIX_strcat(paq1, "0");
+	if (p.DecLong < 1) ciaaPOSIX_strcat(paq1, "0");
+	itoa(p.DecLong,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio DecLong en paquete
+
+	ciaaPOSIX_strcat(paq1, "0000663FF4F00");
+	ciaaPOSIX_strcat(paq1, str2);				// Copio Fin de Paquete1
+	if (p.log < 1000) ciaaPOSIX_strcat(paq1, "0");
+	if (p.log < 100)  ciaaPOSIX_strcat(paq1, "0");
+	if (p.log < 10)   ciaaPOSIX_strcat(paq1, "0");
+	itoa(p.log,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio n� log para ack
+
+	ciaaPOSIX_strcat(paq1, str3);				// Copio Fin de Paquete3
+	ciaaPOSIX_printf("PaqueteRGP: %s%s\n",paq1,paq2);
 return;
 }
 

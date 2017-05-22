@@ -341,6 +341,12 @@ TASK(InitTask)
    get(&send_data,&cola,&cabeza,&items); 			 //saco de la cola y actuliso send_data
    //genero_paquete(send_data,paquete_1,paquete_2);	 //Imprimo send_data con el formato del paquete a enviar
    genero_paquete_RUS07(send_data,paquete_1,paquete_2);	 //Imprimo send_data con el formato del paquete a enviar
+   ciaaPOSIX_memset(paquete_2, 0, sizeof(paquete_2));  		// Limpio cadena respuesta_gps
+   ciaaPOSIX_memset(paquete_1, 0, sizeof(paquete_1));  		// Limpio cadena respuesta_gps
+   genero_paquete_PI(send_data,paquete_1,paquete_2);	 //Imprimo send_data con el formato del paquete a enviar
+   ciaaPOSIX_memset(paquete_2, 0, sizeof(paquete_2));  		// Limpio cadena respuesta_gps
+   ciaaPOSIX_memset(paquete_1, 0, sizeof(paquete_1));  		// Limpio cadena respuesta_gps
+   genero_paquete_GP(send_data,paquete_1,paquete_2);	 //Imprimo send_data con el formato del paquete a enviar
 
    /* end InitTask */
    TerminateTask();
