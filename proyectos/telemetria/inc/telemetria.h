@@ -82,6 +82,7 @@ int8_t respuesta_gps[100];
 static int Send_Event=0;
 static char paquete_1[100];
 static char paquete_2[100];
+static char paquete_3[100];
 static struct DATOS_POSICION
 {
 	int fecha;

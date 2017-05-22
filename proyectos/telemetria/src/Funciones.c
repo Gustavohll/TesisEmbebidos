@@ -416,13 +416,13 @@ void genero_paquete_PI(struct DATOS_POSICION p,char *paq1,char *paq2)
 return;
 }
 
-void genero_paquete_GP(struct DATOS_POSICION p,char *paq1,char *paq2)
+void genero_paquete_GP(struct DATOS_POSICION p,char *paq1)
 {
 //  char paq1[200];
 //	RGP210517150104-3493011-058374710000663FF4F00
 
 	char str[10]=">RGP";
-	char str2[25]=";ID=C001;#IP0:";
+	char str2[25]=";ID=C001;#LOG:";
 	char str3[25]="< \x1A";
 	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
 	if (p.fecha < 100000) ciaaPOSIX_strcat(paq1, "0");
@@ -457,7 +457,7 @@ void genero_paquete_GP(struct DATOS_POSICION p,char *paq1,char *paq2)
 	ciaaPOSIX_strcat(paq1, str);				// Copio n� log para ack
 
 	ciaaPOSIX_strcat(paq1, str3);				// Copio Fin de Paquete3
-	ciaaPOSIX_printf("PaqueteRGP: %s%s\n",paq1,paq2);
+	ciaaPOSIX_printf("PaqueteRGP: %s\n",paq1);
 return;
 }
 
