@@ -74,6 +74,7 @@
 #include "telemetria.h"         /* <= own header */
 #include "Funciones.h"         /* <= own header */
 
+//#define Test_GSM
 /*==================[macros and definitions]=================================*/
 
 void blinkled ()
@@ -181,8 +182,11 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 	double aux1,aux2;
 	int fecha;
 	//int8_t respuesta1[]="AT+CGPSINF=2\r\r\n2,180231,3437.130250,S,5824.354484,W,1,7,1.348750,45.631660,M,14.588299,M,,0000\r\nOK\r";
+	#ifdef Test_GSM
 	int8_t respuesta_gps[]="$GPGGA,150212.000,3443.011810,S,05818.595681,W,1,5,3.44,0.983,M,14.456,M,,*5B";
 	int8_t respuesta_gps2[]="$GPRMC,135032.000,A,3443.005606,S,05818.572033,W,0.000,0.0,010517,,,A*64";
+	#endif
+
 	//$GPRMC,134907.991,V,,,,,,,031016,,,N*41
 	//$GPRMC,135032.000,A,3443.005606,S,05818.572033,W,0.000,0.0,010517,,,A*64
 	//	int8_t respuesta1[]="AT+CGPSINF=128 \r\r\n128,180255.000,19,09,2016,00,00\r\nOK\r\n";

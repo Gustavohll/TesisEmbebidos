@@ -50,12 +50,7 @@
 #include "telemetria.h"         /* <= own header */
 #include "Funciones.h"         /* <= own header */
 /*==================[macros and definitions]=================================*/
-//#define Test_AnalogInTask
-//#define Test_DigitalInTask
-//#define Test_LedTask
-//#define Test_GSM
-#define Test_SerialGsmTask
-//#define Test_SerialGpsTask
+
 /*==================[internal data declaration]==============================*/
 
 /*==================[internal functions declaration]=========================*/
@@ -983,10 +978,10 @@ TASK(GsmTask)
 						{
 							CancelAlarm(SetEventTimeOut);
 							/////////////Modulo listo para enviar comando /////////////
-							ciaaPOSIX_write(fd_uart_gsm, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
-							#ifdef Test_GSM
 							ciaaPOSIX_write(fd_uart_usb, paquete_1, ciaaPOSIX_strlen(paquete_1));
 							ciaaPOSIX_write(fd_uart_usb, paquete_2, ciaaPOSIX_strlen(paquete_2));
+							#ifdef Test_GSM
+							ciaaPOSIX_write(fd_uart_gsm, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
 							#endif
 							Send_Event = 1;
 							estado_send = ACK1;
@@ -1023,9 +1018,9 @@ TASK(GsmTask)
 						{
 							CancelAlarm(SetEventTimeOut);
 							/////////////Modulo listo para enviar comando /////////////
-							ciaaPOSIX_write(fd_uart_gsm, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
-							#ifdef Test_GSM
 							ciaaPOSIX_write(fd_uart_usb, paquete_3, ciaaPOSIX_strlen(paquete_3));
+							#ifdef Test_GSM
+							ciaaPOSIX_write(fd_uart_gsm, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
 							#endif
 							Send_Event = 1;
 							estado_send = ACK2;

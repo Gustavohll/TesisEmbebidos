@@ -76,6 +76,14 @@ int8_t respuesta[100];
 int8_t respuesta_gps[100];
 #define MAX_SIZE 10
 #define TIME_POSITION 6
+/*==================[macros and definitions]=================================*/
+//#define Test_AnalogInTask
+//#define Test_DigitalInTask
+//#define Test_LedTask
+#define Test_GSM
+#define Test_SerialGsmTask
+//#define Test_SerialGpsTask
+
 //static int cola = 0;
 //static int cabeza = 0;
 //static int items=0;
