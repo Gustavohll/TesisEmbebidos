@@ -80,9 +80,9 @@ int8_t respuesta_gps[100];
 //#define Test_AnalogInTask
 //#define Test_DigitalInTask
 //#define Test_LedTask
-#define Test_GSM
-#define Test_SerialGsmTask
-//#define Test_SerialGpsTask
+//#define Test_GSM
+//#define Test_SerialGsmTask
+#define Test_SerialGpsTask
 
 //static int cola = 0;
 //static int cabeza = 0;

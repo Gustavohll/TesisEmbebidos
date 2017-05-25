@@ -160,7 +160,8 @@ char IP[]="AT+CIPSTART=\"UDP\",\"131.255.4.29\",\"6097\" \r";
 //>RPF041207152350-3460160-05847853000000300FF01;ID=1020;#IP0:00E0<
 
 //AT+CIPSTART="UDP","190.12.119.150","6097"
-char last_position []=">RPF041207152350-3460160-05847853000000300FF01;ID=1020;#IP0:00E0< \x1A";
+char last_position []=">RPF041207152350-3460160-05847853000000300FF01;ID=1020;#IP0:00E0< \x1A \r\n";
+//char last_position []="< \x1A";
 
 char CIIR[]="AT+CIICR \r";
 char CIFSR[]="AT+CIFSR \r";
@@ -316,7 +317,7 @@ TASK(InitTask)
    Periodic_Task_Counter = 0;
    SetRelAlarm(ActivateDigitalInTask, 200, 500); 	// Cada 500 ms
    SetRelAlarm(ActivateLedsTask, 100, 250);  		// Cada 250 ms
-   SetRelAlarm(ActivateGpsTask,10000, 0);  			// Se activa 1 sola ves a los 10 segundos
+   SetRelAlarm(ActivateGpsTask,15000, 0);  			// Se activa 1 sola ves a los 15 segundos
 //   SetRelAlarm(ActivateEventTask,14600, 10000);  	// Cada 10 s
    /*Contadores a cero*/
    Contador_In1=0;
@@ -392,7 +393,11 @@ TASK(SerialGpsTask)
 			  {
     		  	  case ESPERA:
     		  	  {
-    		  		  if (buf[i] == '$') estado_serial=RESPUESTA;   // Si llega $ es una paquete de datos
+    		  		  if (buf[i] == '$')
+    		  		  {
+    		  			  estado_serial=RESPUESTA;   // Si llega $ es una paquete de datos
+    		  			  ciaaPOSIX_memset(respuesta_gps, 0, sizeof(respuesta_gps));  		// Limpio cadena respuesta_gps
+    		  		  }
     		  		  break;
     		  	  }
     		  	  case RESPUESTA:
@@ -403,9 +408,15 @@ TASK(SerialGpsTask)
 					  fin_cadena++;											// Busco caracteres que indican fin parcial de respuesta
 					  if (fin_cadena > 0)									// Si hay fin parcial de respuesta
 					  {
-						  //ciaaPOSIX_write(fd_uart_usb, "Llego posicion!! \n\r",18 );
+
 						  Guardo_datos_posicion(&pos_data,&statusgps);		//Parseo datos de la respuesta y los guardo
-						  ciaaPOSIX_memset(respuesta_gps, 0, sizeof(respuesta_gps));  // Limpio cadena respuesta
+						  //ciaaPOSIX_memset(respuesta_gps, 0, sizeof(respuesta_gps));  // Limpio cadena respuesta
+						  #ifdef Test_SerialGpsTask
+						  ciaaPOSIX_write(fd_uart_usb, "Llego posicion!! \n\r",18 );
+						  char str[6];
+						  itoa(pos_data.fecha,str,6);
+						  ciaaPOSIX_write(fd_uart_usb, str,6);
+						  #endif
 						  fin_cadena=0;
 						  estado_serial=ESPERA;
 					  }
@@ -917,7 +928,7 @@ TASK(GsmTask)
 				if(x==5) ciaaPOSIX_write(fd_uart_gsm, IP, ciaaPOSIX_strlen(IP)); 		 	 //Configuro ip y puerto ;
 				if(x<6)
 				{
-					SetRelAlarm(SetEventTimeOut, 6000, 0);				//Activo time out 2 segundos
+					SetRelAlarm(SetEventTimeOut, 10000, 0);				//Activo time out 2 segundos
 					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);		//Espero respuesta
 					GetEvent(GsmTask, &Events);
 					ClearEvent(Events);
@@ -956,7 +967,7 @@ TASK(GsmTask)
 					{
 						if(items > 0)
 						{
-							estado_send=SEND1;
+							estado_send=SEND2;
 							ciaaPOSIX_memset(paquete_1, 0, sizeof(paquete_1));  		 // Limpio paquete_1 de datos
 							ciaaPOSIX_memset(paquete_2, 0, sizeof(paquete_2));
 							get(&send_data,&cola,&cabeza,&items); 						 // Si no hay paquete_1 pendiente, lo saco de la cola y lo formateo
@@ -978,10 +989,10 @@ TASK(GsmTask)
 						{
 							CancelAlarm(SetEventTimeOut);
 							/////////////Modulo listo para enviar comando /////////////
-							ciaaPOSIX_write(fd_uart_usb, paquete_1, ciaaPOSIX_strlen(paquete_1));
-							ciaaPOSIX_write(fd_uart_usb, paquete_2, ciaaPOSIX_strlen(paquete_2));
+							ciaaPOSIX_write(fd_uart_gsm, paquete_1, ciaaPOSIX_strlen(paquete_1));
+							ciaaPOSIX_write(fd_uart_gsm, paquete_2, ciaaPOSIX_strlen(paquete_2));
 							#ifdef Test_GSM
-							ciaaPOSIX_write(fd_uart_gsm, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
+							//ciaaPOSIX_write(fd_uart_gsm, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
 							#endif
 							Send_Event = 1;
 							estado_send = ACK1;
@@ -1017,10 +1028,15 @@ TASK(GsmTask)
 						if (Events & EVENTOK)
 						{
 							CancelAlarm(SetEventTimeOut);
+							SetRelAlarm(SetEventTimeOut, 1000, 0);				//Genero time out 1 segundo
+							WaitEvent(EVENTTIMEOUT);
+							GetEvent(GsmTask, &Events);
+							ClearEvent(Events);
 							/////////////Modulo listo para enviar comando /////////////
-							ciaaPOSIX_write(fd_uart_usb, paquete_3, ciaaPOSIX_strlen(paquete_3));
+							ciaaPOSIX_write(fd_uart_gsm, paquete_3, ciaaPOSIX_strlen(paquete_3));
+							//ciaaPOSIX_write(fd_uart_gsm, last_position,ciaaPOSIX_strlen(last_position));
 							#ifdef Test_GSM
-							ciaaPOSIX_write(fd_uart_gsm, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
+							//ciaaPOSIX_write(fd_uart_gsm, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
 							#endif
 							Send_Event = 1;
 							estado_send = ACK2;
