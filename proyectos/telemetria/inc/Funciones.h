@@ -77,9 +77,9 @@
 
 void blinkled (void);
 char *itoa(int num, char *str, int radix);
-char *strtok(char * str, const char * delim);
+//char *strtok(char * str, const char * delim);
 int8_t *intstrtok(int8_t * str, const int8_t * delim);
-int atoi(char *str);
+//int atoi(char *str);
 void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps);
 
 void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2);

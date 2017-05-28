@@ -406,6 +406,8 @@ TASK(SerialGpsTask)
 					  ciaaPOSIX_strcat(respuesta_gps, buf_aux);				// Copio buffer en cadena de respuesta
 					  if (buf[i] == '*')
 					  fin_cadena++;											// Busco caracteres que indican fin parcial de respuesta
+					  if (buf[i] == ',')
+				      ciaaPOSIX_strcat(respuesta_gps, "0");					// Si es "," inserto un 0 despues de cada coma.
 					  if (fin_cadena > 0)									// Si hay fin parcial de respuesta
 					  {
 

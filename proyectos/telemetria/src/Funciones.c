@@ -71,8 +71,10 @@
 #include "ciaaPOSIX_stdio.h"  /* <= device handler header */
 #include "ciaaPOSIX_string.h" /* <= string header */
 #include "ciaak.h"            /* <= ciaa kernel header */
-#include "telemetria.h"         /* <= own header */
-#include "Funciones.h"         /* <= own header */
+#include "telemetria.h"       /* <= own header */
+#include "Funciones.h"        /* <= own header */
+#include "stdlib.h"        	  /* <= own header */
+#include "string.h"           /* <= own header */
 
 //#define Test_GSM
 /*==================[macros and definitions]=================================*/
@@ -141,7 +143,7 @@ char *itoa(int num, char *str, int radix) {
 }
 
 /*==================[Funcion STRTOK]============================================*/
-char *strtok(char * str, const char * delim)
+/*char *strtok(char * str, const char * delim)
 {
     static char* p=0;
     if(str)
@@ -155,10 +157,10 @@ char *strtok(char * str, const char * delim)
     p = *p ? *p=0,p+1 : 0;
     return str;
 }
-
+*/
 /*==================[Funcion ATOI]============================================*/
 // A simple atoi() function
-int atoi(char *str)
+/*int atoi(char *str)
 {
     int res = 0; // Initialize result
 
@@ -171,7 +173,7 @@ int atoi(char *str)
     // return result.
     return res;
 }
-
+*/
 /*==================[Funciones Parseo datos GPS]============================================*/
 //Guardo datos posicion en pos_data
 void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
@@ -179,14 +181,17 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 	char GGA[]="GPGGA";
 	char RMC[]="GPRMC";
 	char *pch;
-	double aux1,aux2;
+	char cadena_aux[10];
+	double aux;
 	int fecha;
 	//int8_t respuesta1[]="AT+CGPSINF=2\r\r\n2,180231,3437.130250,S,5824.354484,W,1,7,1.348750,45.631660,M,14.588299,M,,0000\r\nOK\r";
 	#ifdef Test_GSM
-	int8_t respuesta_gps[]="GPGGA,150212.000,3443.011810,S,05818.595681,W,1,5,3.44,0.983,M,14.456,M,,*5B";
-	int8_t respuesta_gps2[]="GPRMC,135032.000,A,3443.005606,S,05818.572033,W,0.000,0.0,010517,,,A*64";
+	int8_t respuesta_gps[]="GPGGA,0150212.000,0,0,0,0,0,0,0,0,0,0,0,,*5B";
+	//
+	int8_t respuesta_gps2[]="GPRMC,0134907.991,0A,0,0,0,0,0,0,0031016,,,N*41";
 	#endif
-
+	//GPGGA,0150212.000,03443.011810,0S,005818.595681,0W,01,05,03.44,00.983,0M,014.456,0M,,*5B
+	//GPGGA,0150212.000,0,0,0,0,0,0,0,0,0,0,0,,*5B
 	//$GPRMC,134907.991,V,,,,,,,031016,,,N*41
 	//$GPRMC,135032.000,A,3443.005606,S,05818.572033,W,0.000,0.0,010517,,,A*64
 	//$GPRMC,232410.000,V,           , ,            , ,     ,   ,010517,,,N*4
@@ -199,47 +204,34 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 	if (ciaaPOSIX_strncmp(pch,GGA,5)==0)
 	//if (strcmp(pch,"2")==0)           // Si es la correcta, seguimos adelante
     {
-        pch = strtok (NULL, ".");     		 // Pasamos al siguiente intervalo cortado de la respuesta
-        p->hora = atoi(pch);			 	 // Guardo la parte entera del TIEMPO
-        pch = strtok (NULL, ",");
-        pch = strtok (NULL, ".");
-        p->Lat = atoi(pch);
-        pch = strtok (NULL, ",");
-        p->DecLat = atoi(pch);
-        p->DecLat = (p->DecLat/1000);
-        pch = strtok (NULL, ",");
-        pch = strtok (NULL, ".");
-        p->Long = atoi(pch);
-        pch = strtok (NULL, ",");
-        p->DecLong = atoi(pch);
-        p->DecLong = (p->DecLong/10000);
-        pch = strtok (NULL, ",");
-        pch = strtok (NULL, ",");
-        p->validity = atoi(pch);		 			 // Guardo si la posicion es valida (A) o no (V)
-        *statusgps = p->validity;
-        //p->hora = 112233;
-        //p->anio = 2016;
+		pch = strtok (NULL, ",");     		 // Pasamos al siguiente intervalo cortado de la respuesta
+		p->hora = atoi (pch);			 	 // Guardo la parte entera del TIEMPO
+		pch = strtok (NULL, ",");
+		aux = atof (pch);					 //Parseo Latitud
+		p->Lat = aux;
+		p->DecLat = (aux - p->Lat)*1000;
+		pch = strtok (NULL, ",");
+		pch = strtok (NULL, ",");			 //Parseo Longitud
+		aux = atof (pch);
+		p->Long = aux;
+		p->DecLong = (aux - p->Long)*1000;
     }
 
-	//pch = strtok(respuesta_gps2,",");
+	#ifdef Test_GSM
+	pch = strtok(respuesta_gps2,",");
+	#endif
+
 	if (ciaaPOSIX_strncmp(pch,RMC,5)==0)
 	{
 		//$GPRMC,135032.000,A,3443.005606,S,05818.572033,W,0.000,0.0,010517,,,A*64
-		pch = strtok (NULL, ".");     		 // Pasamos al siguiente intervalo cortado de la respuesta
-		//p->hora = atoi(pch);			 	 // Guardo la parte entera del TIEMPO
 		pch = strtok (NULL, ",");
 		pch = strtok (NULL, ",");
-		//p->validity = atoi(pch);		 	 // Guardo si la posicion es valida (A) o no (V)
-		//*statusgps = p->validity;
-		pch = strtok (NULL, ".");
-		//p->Lat = atoi(pch);
+		if (ciaaPOSIX_strncmp(pch,"0A",2)==0)	p->validity = 1;
+		if (ciaaPOSIX_strncmp(pch,"0V",2)==0)	p->validity = 0;// Guardo si la posicion es valida (A) o no (V)
+		*statusgps = p->validity;
 		pch = strtok (NULL, ",");
-		//p->DecLat = atoi(pch);
 		pch = strtok (NULL, ",");
-		pch = strtok (NULL, ".");
-		//p->Long = atoi(pch);
 		pch = strtok (NULL, ",");
-		//p->DecLong = atoi(pch);
 		pch = strtok (NULL, ",");
 		pch = strtok (NULL, ",");
 		pch = strtok (NULL, ",");
