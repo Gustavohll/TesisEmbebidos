@@ -324,6 +324,7 @@ TASK(InitTask)
    Contador_In2=0;
    Contador_In3=0;
    Contador_In4=0;
+   pos_data.event = 8;
    pos_data.log = 9987;
    pos_data.dia = 10;
    pos_data.mes = 10;
@@ -644,7 +645,7 @@ TASK(DigitalInTask)
     if ((inputs&0x01) != estado_in1)
     {
 	    cambioestado=1;
-	    pos_data.event = 201;				// evento cambio in1
+	    pos_data.event = CAMBIO_IN1;				// evento cambio in1 (201)
 	    if ((inputs&0x01) == 1)
 	    {
 		    estado_in1=1;
@@ -661,7 +662,7 @@ TASK(DigitalInTask)
    if ((inputs&0x02) != estado_in2)
    {
 	   cambioestado=1;
-	   pos_data.event = 202;				// evento cambio in2
+	   pos_data.event = CAMBIO_IN2;				// evento cambio in2
 	   if ((inputs&0x02) == 2)
    	   {
    		   estado_in2=2;
@@ -677,7 +678,7 @@ TASK(DigitalInTask)
    if ((inputs&0x04) != estado_in3)
    {
 	   cambioestado=1;
-	   pos_data.event = 203;				// evento cambio in3
+	   pos_data.event = CAMBIO_IN3;				// evento cambio in3
    	   if ((inputs&0x04) == 4)
    	   {
    		   estado_in3=4;
@@ -693,7 +694,7 @@ TASK(DigitalInTask)
    if ((inputs&0x08) != estado_in4)
    {
 	   cambioestado=1;
-	   pos_data.event = 204;				// evento cambio in4
+	   pos_data.event = CAMBIO_IN4;				// evento cambio in4
    	   if ((inputs&0x08) == 8)
    	   {
    		   estado_in4=8;
@@ -757,12 +758,12 @@ TASK(AnalogInTask)
 
    if(adc_1 > (1.4*valor_ch1) || adc_1 < (0.6*valor_ch1))
    {
-	   pos_data.event = 205;				// evento cambio adc1
+	   pos_data.event = CAMBIO_ADC1;				// evento cambio adc1
 	   estado_ch1=1;
    }
    if(adc_3 > (1.4*valor_ch3) || adc_3 < (0.6*valor_ch3))
    {
-	   pos_data.event = 206;				// evento cambio adc2
+	   pos_data.event = CAMBIO_ADC2;				// evento cambio adc2
 	   estado_ch3=1;
    }
 
@@ -1225,7 +1226,7 @@ TASK(EventTask)
 	time_event_position++;							//Cada 1 min genero evento y lo pongo en la cola de envios
 	if (time_event_position==TIME_POSITION)
 	{
-		pos_data.event = 200;				// evento posicion ciaa
+		pos_data.event = CAMBIO_POS;				// evento posicion ciaa
 		put(pos_data,&cola,&cabeza,&items); //guardo evento en cola de envio
 		time_event_position=0;
 	}

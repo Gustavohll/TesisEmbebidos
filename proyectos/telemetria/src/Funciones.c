@@ -325,31 +325,28 @@ void genero_paquete_RUS07(struct DATOS_POSICION p,char *paq1,char *paq2)
 	char str2[25]=";ID=C001;#IP0:";
 	char str3[25]="< \x1A";
 	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
-	if (p.hora < 100000) ciaaPOSIX_strcat(paq1, "0");
-	itoa(p.hora,str,10);
-	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
 	if (p.fecha < 100000) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.fecha,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio fecha en paquete
+	if (p.hora < 100000) ciaaPOSIX_strcat(paq1, "0");
+	itoa(p.hora,str,10);
+	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
 	ciaaPOSIX_strcat(paq2, ",V,");
 	itoa(p.IN1,str,10);
 	ciaaPOSIX_strcat(paq2, str);				// Copio Digital in en paquete
-	ciaaPOSIX_strcat(paq2, ",W,");
 	itoa(p.IN2,str,10);
 	ciaaPOSIX_strcat(paq2, str);
-	ciaaPOSIX_strcat(paq2, ",X,");
 	itoa(p.IN3,str,10);
 	ciaaPOSIX_strcat(paq2, str);
-	ciaaPOSIX_strcat(paq2, ",Y,");
 	itoa(p.IN4,str,10);
 	ciaaPOSIX_strcat(paq2, str);
-	ciaaPOSIX_strcat(paq2, ",Z,");
+	ciaaPOSIX_strcat(paq2, ",W,");
 	itoa(p.ADC1,str,10);
 	ciaaPOSIX_strcat(paq2, str);				// Copio Adc1 in en paquete
-	ciaaPOSIX_strcat(paq2, ",a,");
+	ciaaPOSIX_strcat(paq2, ",X,");
 	itoa(p.ADC2,str,10);
 	ciaaPOSIX_strcat(paq2, str);				// Copio ADC2 in en paquete
-	ciaaPOSIX_strcat(paq2, ",b,");
+	ciaaPOSIX_strcat(paq2, ",Y,");
 	itoa(p.Modbus,str,10);
 	ciaaPOSIX_strcat(paq2, str);				// Copio Modbus en paquete
 	//ciaaPOSIX_strcat(paq2, ",");
@@ -445,8 +442,10 @@ void genero_paquete_GP(struct DATOS_POSICION p,char *paq1)
 	if (p.DecLong < 1) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.DecLong,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio DecLong en paquete
-
-	ciaaPOSIX_strcat(paq1, "0000663FF4F00");
+	ciaaPOSIX_strcat(paq1, "0000663FF4F");
+	itoa(p.event,str,10);
+	if (p.event < 10) ciaaPOSIX_strcat(paq1, "0");
+	ciaaPOSIX_strcat(paq1, str);				// Copio DecLong en paquete
 	ciaaPOSIX_strcat(paq1, str2);				// Copio Fin de Paquete1
 	if (p.log < 1000) ciaaPOSIX_strcat(paq1, "0");
 	if (p.log < 100)  ciaaPOSIX_strcat(paq1, "0");

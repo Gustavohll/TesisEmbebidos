@@ -83,6 +83,16 @@ int8_t respuesta_gps[100];
 #define Test_GSM
 //#define Test_SerialGsmTask
 #define Test_SerialGpsTask
+/*==================[TABLA DE EVENTOS]=================================*/
+
+#define CAMBIO_POS 8
+#define CAMBIO_IN1 10
+#define CAMBIO_IN2 11
+#define CAMBIO_IN3 12
+#define CAMBIO_IN4 13
+#define CAMBIO_ADC1 14
+#define CAMBIO_ADC2 15
+
 
 //static int cola = 0;
 //static int cabeza = 0;
