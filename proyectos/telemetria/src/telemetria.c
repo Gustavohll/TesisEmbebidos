@@ -523,10 +523,8 @@ TASK(SerialGsmTask)
 						if (ciaaPOSIX_strncmp(respuesta,CIIR,8)==0)		tipo_comando=2;
 						if (ciaaPOSIX_strncmp(respuesta,CIFSR,8)==0)	tipo_comando=2;
 						if (ciaaPOSIX_strncmp(respuesta,CIPSHUT,10)==0)	tipo_comando=2;
-						//if (ciaaPOSIX_strncmp(respuesta,GPS,10)==0)		tipo_comando=3;
 						if (ciaaPOSIX_strncmp(respuesta,IP,10)==0)		tipo_comando=4;
 						if (ciaaPOSIX_strncmp(respuesta,CGATT,8)==0)	tipo_comando=4;
-
 
 						if (tipo_comando==0)
 						{
@@ -552,16 +550,6 @@ TASK(SerialGsmTask)
 						if (ciaaPOSIX_strncmp(respuesta,R_GPSIPR,sizeof(R_GPSIPR))==0)			respuesta_ok=2;
 						if (ciaaPOSIX_strncmp(respuesta,R_GPSRST,sizeof(R_GPSRST))==0)			respuesta_ok=2;
 					}
-/*					if ((tipo_comando==3) && (fin_cadena==3))   // Si es un comando del tipo 3, espero 3 /n para detectar fin de respuesta
-					{
-						estado_serial=ESPERA;      							//Vuelvo a espera
-						Guardo_datos_posicion(&pos_data,&statusgps);		//Parseo datos de la respuesta y los guardo
-						respuesta_ok=0;
-						respuesta_recibida=0;
-						ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
-						fin_cadena=0;
-						tipo_comando=0;
-					}*/
 					if ((tipo_comando==4) && (fin_cadena==4))   // Si es un comando del tipo 4, espero 4 /n para detectar fin de respuesta
 					{
 						respuesta_recibida=1;
@@ -973,9 +961,10 @@ TASK(GsmTask)
 							estado_send=SEND2;
 							ciaaPOSIX_memset(paquete_1, 0, sizeof(paquete_1));  		 // Limpio paquete_1 de datos
 							ciaaPOSIX_memset(paquete_2, 0, sizeof(paquete_2));
+							ciaaPOSIX_memset(paquete_3, 0, sizeof(paquete_3));
 							get(&send_data,&cola,&cabeza,&items); 						 // Si no hay paquete_1 pendiente, lo saco de la cola y lo formateo
-							genero_paquete_RUS07(send_data,paquete_1,paquete_2);		 // Lo guardo en send_data para enviarlo
-
+							genero_paquete_RUS07(send_data,paquete_1,paquete_2);		 // Lo guardo en send_data para enviarlo en formato RUS07
+							genero_paquete_GP(send_data,paquete_3);				   		 // y RGP
 
 						}
 							break;
@@ -1066,58 +1055,6 @@ TASK(GsmTask)
 					}
 
 				}
-				/**
-				if (Send_Event == 1 || items > 0 || Send_State > 0)                     // Si hay paquetes pendientes o en cola
-				{
-					////////// Preparo modulo gsm para envio de comando /////////
-					ciaaPOSIX_write(fd_uart_gsm, CIPSEND, ciaaPOSIX_strlen(CIPSEND)); 	// Envio comando para enviar datos
-					SetRelAlarm(SetEventTimeOut, 3000, 0);								// Activo time out 3 segundos
-					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);						// Espero respuesta
-					GetEvent(GsmTask, &Events);
-					ClearEvent(Events);
-					if (Events & EVENTOK)
-					{
-						CancelAlarm(SetEventTimeOut);
-						/////////////Modulo listyo para enviar comando /////////////
-						if (Send_Event == 0 || Send_State > 0 )					 // Si no hay pendientes y falta enviar paquetes
-						{
-							if (Send_State == 1)								 // Si es 1 envio paquete rus07,sino envio paquete RGP
-							{
-								ciaaPOSIX_memset(paquete_1, 0, sizeof(paquete_1));   // Limpio paquete_1 de datos
-								ciaaPOSIX_memset(paquete_2, 0, sizeof(paquete_2));
-								get(&send_data,&cola,&cabeza,&items); 				 // Si no hay paquete_1 pendiente, lo saco de la cola y lo formateo
-								genero_paquete_RUS07(send_data,paquete_1,paquete_2);		 // Lo guardo en send_data para enviarlo
-								Send_State = 2;
-							}
-							if (Send_State == 2)								 // Si es 1 envio rus07,si es 2 envio RGP
-							{
-								ciaaPOSIX_memset(paquete_3, 0, sizeof(paquete_3));   // Limpio paquete_3 de datos
-								get(&send_data,&cola,&cabeza,&items); 				 // Si no hay paquete_1 pendiente, lo saco de la cola y lo formateo
-								genero_paquete_GP(send_data,paquete_3);				 // Lo guardo en send_data para enviarlo
-								Send_State = 0;
-							}
-						}
-						ciaaPOSIX_write(fd_uart_gsm, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
-#ifdef Test_GSM
-ciaaPOSIX_write(fd_uart_usb, paquete_1, ciaaPOSIX_strlen(paquete_1));
-ciaaPOSIX_write(fd_uart_usb, paquete_2, ciaaPOSIX_strlen(paquete_2));
-#endif
-						Send_Event = 1;
-						estado_gsm = ACKNOLEGE;
-					}
-					if (Events & EVENTERROR)
-					{
-						CancelAlarm(SetEventTimeOut);
-						SetRelAlarm(SetEventTimeOut, 1000, 0);					//Activo time out 2 segundos
-						WaitEvent(EVENTTIMEOUT);
-						GetEvent(GsmTask, &Events);
-						ClearEvent(Events);
-						estado_gsm = RED;										// Si hay error comienzo nuevamente el ciclo
-					}
-				}
-				*/
-
-
 				SetRelAlarm(SetEventTimeOut, 1000, 0);				//Genero time out 1 segundo
 				WaitEvent(EVENTTIMEOUT);
 				GetEvent(GsmTask, &Events);
@@ -1145,7 +1082,6 @@ ciaaPOSIX_write(fd_uart_usb, paquete_2, ciaaPOSIX_strlen(paquete_2));
 				}
 				if (Events & EVENTTIMEOUT)
 				{
-					//ciaaPOSIX_write(fd_uart_gsm,CIPSHUT, ciaaPOSIX_strlen(CIPSHUT)); 	// Cierro la sesion de IP
 					estado_gsm = RED;
 					x=4;
 				}
@@ -1184,15 +1120,6 @@ TASK(GpsTask)
 						CancelAlarm(SetEventTimeOutgps);
 						x++;											// Si respuesta es correcta envio siguiente comando
 					}
-	/*				if (Events & EVENTERROR)
-					{
-						CancelAlarm(SetEventTimeOut);
-						SetRelAlarm(SetEventTimeOut, 1000, 0);			//Activo time out 2 segundos
-						WaitEvent(EVENTTIMEOUT);
-						GetEvent(GsmTask, &Events);
-						ClearEvent(Events);
-						//estado_gsm = RED;								// Si hay error comienzo nuevamente el ciclo
-					}*/
 				}
 				if(x>=5)
 				{

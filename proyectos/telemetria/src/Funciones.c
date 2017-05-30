@@ -233,9 +233,8 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 	char cadena_aux[10];
 	double aux;
 	int fecha;
-	//int8_t respuesta1[]="AT+CGPSINF=2\r\r\n2,180231,3437.130250,S,5824.354484,W,1,7,1.348750,45.631660,M,14.588299,M,,0000\r\nOK\r";
 	#ifdef Test_GSM
-	int8_t respuesta_gps[]="GPGGA,0150212.000,0,0,0,0,0,0,0,0,0,0,0,,*5B";
+	int8_t respuesta_gps[]="GPGGA,0150212.001,03443.011810,0S,005818.595681,0W,01,05,03.44,00.983,0M,014.456,0M,,*5B";
 	//
 	int8_t respuesta_gps2[]="GPRMC,0134907.991,0A,0,0,0,0,0,0,0031016,,,N*41";
 	#endif
@@ -254,7 +253,8 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 	//if (strcmp(pch,"2")==0)           // Si es la correcta, seguimos adelante
     {
 		pch = strtok (NULL, ",");     		 // Pasamos al siguiente intervalo cortado de la respuesta
-		p->hora = atoi (pch);			 	 // Guardo la parte entera del TIEMPO
+		aux = atof (pch);
+		p->hora = aux;					 	 // Guardo la parte entera del TIEMPO (hhmmss)
 		pch = strtok (NULL, ",");
 		aux = atof (pch);					 //Parseo Latitud
 		p->Lat = aux;
