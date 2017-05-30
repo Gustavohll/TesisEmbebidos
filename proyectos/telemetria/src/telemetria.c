@@ -174,13 +174,13 @@ char CIPSHUT[]="AT+CIPSHUT \r";
 //char GPS_2[]="AT+CGPSINF=128 \r";
 char GPSPWR[]="AT+CGPSPWR=1 \r";
 char GPSRST[]="AT+CGPSRST=1 \r";
-char GPSOUT[]="AT+CGPSOUT=32 \r";
+char GPSOUT[]="AT+CGPSOUT=34 \r";
 char GPSIPR[]="AT+CGPSIPR=9600 \r";
 char GPGGA[]="GPGGA";
 
 char R_GPSPWR[]="AT+CGPSPWR=1 \r\r\nOK\r\n";
 char R_GPSRST[]="AT+CGPSRST=1 \r\r\nOK\r\n";
-char R_GPSOUT[]="AT+CGPSOUT=32 \r\r\nOK\r\n";
+char R_GPSOUT[]="AT+CGPSOUT=34 \r\r\nOK\r\n";
 char R_GPSIPR[]="AT+CGPSIPR=9600 \r\r\nOK\r\n";
 char R_GPS[]="AT+CGPSINF=2 \r\r\n2,000000,0.000000,N,0.000000,E,0,0,0.000000,0.000000,M,0.000000,M,,0000\r\nOK\r\n";
 char R_GPS_2[]="AT+CGPSINF=128 \r\r\n128,180255.000,19,09,2016,00,00\r\nOK\r\n";
