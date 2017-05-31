@@ -472,10 +472,11 @@ void genero_paquete_GP(struct DATOS_POSICION p,char *paq1)
 	if (p.fecha < 100000) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.fecha,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio fecha en paquete
-	if (p.hora < 100000) ciaaPOSIX_strcat(paq1, "0");
+	if (p.hora < 100000)ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.hora,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
 	ciaaPOSIX_strcat(paq1, "-");
+	if(p.Lat == 0)  ciaaPOSIX_strcat(paq1, "00");
 	itoa(p.Lat,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio Lat en paquete
 	if (p.DecLat < 100) ciaaPOSIX_strcat(paq1, "0");
@@ -484,6 +485,7 @@ void genero_paquete_GP(struct DATOS_POSICION p,char *paq1)
 	itoa(p.DecLat,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio DecLat en paquete
 	ciaaPOSIX_strcat(paq1, "-0");
+	if(p.Long == 0)  ciaaPOSIX_strcat(paq1, "00");
 	itoa(p.Long,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio Long en paquete
 	if (p.DecLong < 100) ciaaPOSIX_strcat(paq1, "0");

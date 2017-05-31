@@ -1088,6 +1088,9 @@ TASK(GsmTask)
 				break;
 			}
 		}
+	//	char str[6];
+	//	itoa(pos_data.hora,str,10);
+	//	ciaaPOSIX_write(fd_uart_usb, str,ciaaPOSIX_strlen(str));
 		blinkled();
    	}
 }
