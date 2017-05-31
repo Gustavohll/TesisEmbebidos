@@ -234,9 +234,9 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 	double aux;
 	int fecha;
 	#ifdef Test_GSM
-	int8_t respuesta_gps[]="GPGGA,0150212.001,03443.011810,0S,005818.595681,0W,01,05,03.44,00.983,0M,014.456,0M,,*5B";
+	int8_t respuesta_gps[]="GPGGA,0000009.001,03443.011810,0S,005818.595681,0W,01,05,03.44,00.983,0M,014.456,0M,,*5B";
 	//
-	int8_t respuesta_gps2[]="GPRMC,0134907.991,0A,0,0,0,0,0,0,0031016,,,N*41";
+	int8_t respuesta_gps2[]="GPRMC,0000009.991,0A,0,0,0,0,0,0,0031016,,,N*41";
 	#endif
 	//GPGGA,0150212.000,03443.011810,0S,005818.595681,0W,01,05,03.44,00.983,0M,014.456,0M,,*5B
 	//GPGGA,0150212.000,0,0,0,0,0,0,0,0,0,0,0,,*5B
@@ -378,6 +378,11 @@ void genero_paquete_RUS07(struct DATOS_POSICION p,char *paq1,char *paq2)
 	itoa(p.fecha,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio fecha en paquete
 	if (p.hora < 100000) ciaaPOSIX_strcat(paq1, "0");
+	if (p.hora < 10000)	 ciaaPOSIX_strcat(paq1, "0");
+	if (p.hora < 1000)	 ciaaPOSIX_strcat(paq1, "0");
+	if (p.hora < 100)	 ciaaPOSIX_strcat(paq1, "0");
+	if (p.hora < 10)	 ciaaPOSIX_strcat(paq1, "0");
+	if (p.hora < 1) 	 ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.hora,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
 	ciaaPOSIX_strcat(paq2, ",V,");
@@ -472,7 +477,12 @@ void genero_paquete_GP(struct DATOS_POSICION p,char *paq1)
 	if (p.fecha < 100000) ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.fecha,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio fecha en paquete
-	if (p.hora < 100000)ciaaPOSIX_strcat(paq1, "0");
+	if (p.hora < 100000) ciaaPOSIX_strcat(paq1, "0");
+	if (p.hora < 10000)	 ciaaPOSIX_strcat(paq1, "0");
+	if (p.hora < 1000)	 ciaaPOSIX_strcat(paq1, "0");
+	if (p.hora < 100)	 ciaaPOSIX_strcat(paq1, "0");
+	if (p.hora < 10)	 ciaaPOSIX_strcat(paq1, "0");
+	if (p.hora < 1) 	 ciaaPOSIX_strcat(paq1, "0");
 	itoa(p.hora,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio hora en paquete
 	ciaaPOSIX_strcat(paq1, "-");

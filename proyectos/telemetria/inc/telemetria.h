@@ -80,8 +80,8 @@ int8_t respuesta_gps[100];
 //#define Test_AnalogInTask
 //#define Test_DigitalInTask
 //#define Test_LedTask
-//#define Test_GSM
-#define Test_SerialGsmTask
+#define Test_GSM
+//#define Test_SerialGsmTask
 //#define Test_SerialGpsTask
 /*==================[TABLA DE EVENTOS]=================================*/
 
