@@ -231,7 +231,7 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 	char RMC[]="GPRMC";
 	char *pch;
 	char cadena_aux[10];
-	double aux;
+	double aux,aux2;
 	int fecha;
 	#ifdef Test_GSM
 	int8_t respuesta_gps[]="GPGGA,0000009.001,03443.011810,0S,005818.595681,0W,01,05,03.44,00.983,0M,014.456,0M,,*5B";
@@ -243,6 +243,9 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 	//$GPRMC,134907.991,V,,,,,,,031016,,,N*41
 	//$GPRMC,135032.000,A,3443.005606,S,05818.572033,W,0.000,0.0,010517,,,A*64
 	//$GPRMC,232410.000,V,           , ,            , ,     ,   ,010517,,,N*4
+
+	//3731.9404  ----> 37 + 31.9404/60 = 37.53234 degrees
+	//10601.6986 ---> 106+1.6986/60 = 106.02831 degrees
 
 	//	int8_t respuesta1[]="AT+CGPSINF=128 \r\r\n128,180255.000,19,09,2016,00,00\r\nOK\r\n";
 
@@ -257,14 +260,16 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 		p->hora = aux;					 	 // Guardo la parte entera del TIEMPO (hhmmss)
 		pch = strtok (NULL, ",");
 		aux = atof (pch);					 //Parseo Latitud
-		p->Lat = aux;
-		p->DecLat = (aux - p->Lat)*1000;
+		p->Lat = aux/100;
+		aux2= (aux - (p->Lat * 100))/60;
+		p->DecLat = aux2*100000;
 		pch = strtok (NULL, ",");
 		pch = strtok (NULL, ",");			 //Parseo Longitud
 		aux = atof (pch);
-		p->Long = aux;
-		p->DecLong = (aux - p->Long)*1000;
-    }
+		p->Long = aux/100;
+		aux2= (aux - (p->Long * 100))/60;
+		p->DecLong = aux2*100000;
+	}
 
 	#ifdef Test_GSM
 	pch = strtok(respuesta_gps2,",");
@@ -286,6 +291,7 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 		pch = strtok (NULL, ",");
 		pch = strtok (NULL, ",");
 		p->fecha = atoi(pch);			 // Guardo la fecha e formato ddmmaa
+
 	}
     return;
 }
@@ -474,9 +480,15 @@ void genero_paquete_GP(struct DATOS_POSICION p,char *paq1)
 	char str2[25]=";ID=C001;#LOG:";
 	char str3[25]="< \x1A";
 	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
-	if (p.fecha < 100000) ciaaPOSIX_strcat(paq1, "0");
-	itoa(p.fecha,str,10);
-	ciaaPOSIX_strcat(paq1, str);				// Copio fecha en paquete
+	if (p.Lat != 0)								// Si hay posicion pongo fecha, sino pongo 1970
+	{
+		if (p.fecha < 100000) ciaaPOSIX_strcat(paq1, "0");
+		itoa(p.fecha,str,10);
+		ciaaPOSIX_strcat(paq1, str);				// Copio fecha en paquete
+	}else
+	{
+		ciaaPOSIX_strcat(paq1, "101070");
+	}
 	if (p.hora < 100000) ciaaPOSIX_strcat(paq1, "0");
 	if (p.hora < 10000)	 ciaaPOSIX_strcat(paq1, "0");
 	if (p.hora < 1000)	 ciaaPOSIX_strcat(paq1, "0");
@@ -489,6 +501,7 @@ void genero_paquete_GP(struct DATOS_POSICION p,char *paq1)
 	if(p.Lat == 0)  ciaaPOSIX_strcat(paq1, "00");
 	itoa(p.Lat,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio Lat en paquete
+	if (p.DecLat < 1000) ciaaPOSIX_strcat(paq1, "0");
 	if (p.DecLat < 100) ciaaPOSIX_strcat(paq1, "0");
 	if (p.DecLat < 10) ciaaPOSIX_strcat(paq1, "0");
 	if (p.DecLat < 1) ciaaPOSIX_strcat(paq1, "0");
@@ -498,6 +511,8 @@ void genero_paquete_GP(struct DATOS_POSICION p,char *paq1)
 	if(p.Long == 0)  ciaaPOSIX_strcat(paq1, "00");
 	itoa(p.Long,str,10);
 	ciaaPOSIX_strcat(paq1, str);				// Copio Long en paquete
+	if (p.DecLong < 10000) ciaaPOSIX_strcat(paq1, "0");
+	if (p.DecLong < 1000) ciaaPOSIX_strcat(paq1, "0");
 	if (p.DecLong < 100) ciaaPOSIX_strcat(paq1, "0");
 	if (p.DecLong < 10) ciaaPOSIX_strcat(paq1, "0");
 	if (p.DecLong < 1) ciaaPOSIX_strcat(paq1, "0");
