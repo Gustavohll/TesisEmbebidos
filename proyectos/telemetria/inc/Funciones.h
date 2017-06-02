@@ -82,9 +82,6 @@ int8_t *intstrtok(int8_t * str, const int8_t * delim);
 int atoi(char *str);
 double atof(char *p);
 void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps);
-
-void genero_paquete(struct DATOS_POSICION p,char *paq1,char *paq2);
-
 void put(struct DATOS_POSICION d,int *cola,int *cabeza,int *items);
 void get(struct DATOS_POSICION *d,int *cola,int *cabeza,int *items);
 

@@ -318,7 +318,7 @@ TASK(InitTask)
    SetRelAlarm(ActivateDigitalInTask, 200, 500); 	// Cada 500 ms
    SetRelAlarm(ActivateLedsTask, 100, 250);  		// Cada 250 ms
    SetRelAlarm(ActivateGpsTask,15000, 0);  			// Se activa 1 sola ves a los 15 segundos
-//   SetRelAlarm(ActivateEventTask,14600, 10000);  	// Cada 10 s
+   SetRelAlarm(ActivateEventTask,14600, 10000);  	// Cada 10 s
    /*Contadores a cero*/
    Contador_In1=0;
    Contador_In2=0;
@@ -338,19 +338,15 @@ TASK(InitTask)
    //ActivateTask(GsmTask);
 
    //TEST FUNCIONES//
-   Guardo_datos_posicion(&pos_data,&statusgps);		 //Parseo datos de posicion gps y los guardo pos_data
-   put(pos_data,&cola,&cabeza,&items);				 //guardo pos_data en cola de envio
-   get(&send_data,&cola,&cabeza,&items); 			 //saco de la cola y actuliso send_data
-   //genero_paquete(send_data,paquete_1,paquete_2);	 //Imprimo send_data con el formato del paquete a enviar
-   genero_paquete_RUS07(send_data,paquete_1,paquete_2);	 //Imprimo send_data con el formato del paquete a enviar
-   ciaaPOSIX_memset(paquete_2, 0, sizeof(paquete_2));  		// Limpio cadena respuesta_gps
-   ciaaPOSIX_memset(paquete_1, 0, sizeof(paquete_1));  		// Limpio cadena respuesta_gps
-   genero_paquete_PI(send_data,paquete_1,paquete_2);	 //Imprimo send_data con el formato del paquete a enviar
-   ciaaPOSIX_memset(paquete_2, 0, sizeof(paquete_2));  		// Limpio cadena respuesta_gps
-   ciaaPOSIX_memset(paquete_1, 0, sizeof(paquete_1));  		// Limpio cadena respuesta_gps
-   ciaaPOSIX_memset(paquete_3, 0, sizeof(paquete_3));  		// Limpio cadena respuesta_gps
-   genero_paquete_GP(send_data,paquete_3);				    // Imprimo send_data con el formato del paquete a enviar
-
+   //Aqui chequeamos el armado de los paquetes:
+   Guardo_datos_posicion(&pos_data,&statusgps);		 	// Parseo datos de posicion gps y los guardo pos_data
+   put(pos_data,&cola,&cabeza,&items);				 	// Guardo pos_data en cola de envio
+   get(&send_data,&cola,&cabeza,&items); 			 	// Saco de la cola y actuliso send_data
+   genero_paquete_RUS07(send_data,paquete_1,paquete_2);	// Imprimo send_data con el formato del paquete a enviar
+   ciaaPOSIX_memset(paquete_2, 0, sizeof(paquete_2));  	// Limpio cadena respuesta_gps
+   ciaaPOSIX_memset(paquete_1, 0, sizeof(paquete_1));  	// Limpio cadena respuesta_gps
+   ciaaPOSIX_memset(paquete_3, 0, sizeof(paquete_3));  	// Limpio cadena respuesta_gps
+   genero_paquete_GP(send_data,paquete_3);				// Imprimo send_data con el formato del paquete a enviar
    /* end InitTask */
    TerminateTask();
 }
@@ -411,7 +407,6 @@ TASK(SerialGpsTask)
 				      ciaaPOSIX_strcat(respuesta_gps, "0");					// Si es "," inserto un 0 despues de cada coma.
 					  if (fin_cadena > 0)									// Si hay fin parcial de respuesta
 					  {
-
 						  Guardo_datos_posicion(&pos_data,&statusgps);		//Parseo datos de la respuesta y los guardo
 						  //ciaaPOSIX_memset(respuesta_gps, 0, sizeof(respuesta_gps));  // Limpio cadena respuesta
 						  #ifdef Test_SerialGpsTask
@@ -958,7 +953,7 @@ TASK(GsmTask)
 					{
 						if(items > 0)
 						{
-							estado_send=SEND2;
+							estado_send=SEND1;
 							ciaaPOSIX_memset(paquete_1, 0, sizeof(paquete_1));  		 // Limpio paquete_1 de datos
 							ciaaPOSIX_memset(paquete_2, 0, sizeof(paquete_2));
 							ciaaPOSIX_memset(paquete_3, 0, sizeof(paquete_3));
@@ -967,7 +962,7 @@ TASK(GsmTask)
 							genero_paquete_GP(send_data,paquete_3);				   		 // y RGP
 
 						}
-							break;
+						break;
 					}
 					case SEND1:                             // Envio Paquete 1
 					{
@@ -983,9 +978,6 @@ TASK(GsmTask)
 							/////////////Modulo listo para enviar comando /////////////
 							ciaaPOSIX_write(fd_uart_gsm, paquete_1, ciaaPOSIX_strlen(paquete_1));
 							ciaaPOSIX_write(fd_uart_gsm, paquete_2, ciaaPOSIX_strlen(paquete_2));
-							#ifdef Test_GSM
-							//ciaaPOSIX_write(fd_uart_gsm, last_position, ciaaPOSIX_strlen(last_position)); // Si respuesta es correcta Envio POSICION
-							#endif
 							Send_Event = 1;
 							estado_send = ACK1;
 							estado_gsm = ACKNOLEGE;
