@@ -491,6 +491,7 @@ TASK(SerialGsmTask)
 				 {
 					 if (buf[i] == 'S')
 					 {
+						 ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
 						 estado_serial=COMANDO; 		//Es un comando
 						 respuesta[0]='>';
 						 respuesta[1]='S';
@@ -580,20 +581,13 @@ TASK(SerialGsmTask)
 				{
 					buf_aux[0]=buf[i];
 					ciaaPOSIX_strcat(respuesta, buf_aux);	// Copio buffer en cadena de respuesta
-					if (buf[i] == '<')	fin_comando++;		// Busco caracteres que indican que llego comando o ACK
-
-					if (fin_comando > 0)   // Si llega un ack o un comando con formato GAP (caracter de inicio > ; caracter de fin <)
+					if (buf[i] == '<')
 					{
 						estado_serial=ESPERA;      							//Vuelvo a espera
-						if (ciaaPOSIX_strncmp(respuesta,R_SAK,4)==0)
+						if (ciaaPOSIX_strncmp(respuesta,R_SAK,4)==0)		// Si es ACK enio evento correpondiente
 						{
 							SetEvent(GsmTask, EVENTACK);
-							tipo_comando=0;
-							fin_comando=0;
 						}
-						else
-							fin_comando=0;
-						ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
 					}
 				break;
 				}
@@ -1056,7 +1050,7 @@ TASK(GsmTask)
 			case ACKNOLEGE:
 			{
 
-				SetRelAlarm(SetEventTimeOut, 15000, 0);						// Activo time out 2 segundos
+				SetRelAlarm(SetEventTimeOut, 15000, 0);						// Activo time out 15 segundos
 				WaitEvent(EVENTACK | EVENTTIMEOUT);							// Espero ACK O TIMEOUT
 				GetEvent(GsmTask, &Events);
 				ClearEvent(Events);
