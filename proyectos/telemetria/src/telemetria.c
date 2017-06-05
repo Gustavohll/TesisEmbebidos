@@ -227,7 +227,6 @@ int main(void)
     * 0 is returned */
    return 0;
 }
-
 /** \brief Error Hook function
  *
  * This fucntion is called from the os if an os interface (API) returns an
