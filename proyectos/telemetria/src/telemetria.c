@@ -491,7 +491,6 @@ TASK(SerialGsmTask)
 				 {
 					 if (buf[i] == 'S')
 					 {
-						 ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
 						 estado_serial=COMANDO; 		//Es un comando
 						 respuesta[0]='>';
 						 respuesta[1]='S';
@@ -588,6 +587,7 @@ TASK(SerialGsmTask)
 						{
 							SetEvent(GsmTask, EVENTACK);
 						}
+						ciaaPOSIX_memset(respuesta, 0, sizeof(respuesta));  // Limpio cadena respuesta y descarto lo recibido
 					}
 				break;
 				}
