@@ -79,7 +79,7 @@ int8_t respuesta_gps[100];
 /*==================[macros and definitions]=================================*/
 //#define Test_AnalogInTask
 //#define Test_DigitalInTask
-//#define Test_LedTask
+//#define Test_LedsTask
 //#define Test_GSM
 #define Test_SerialGsmTask
 //#define Test_SerialGpsTask

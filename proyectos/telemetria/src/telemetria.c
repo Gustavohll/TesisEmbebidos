@@ -324,7 +324,7 @@ TASK(InitTask)
    Contador_In3=0;
    Contador_In4=0;
    pos_data.event = 8;
-   pos_data.log = 9987;
+   pos_data.log = 9997;
    pos_data.dia = 10;
    pos_data.mes = 10;
    pos_data.anio = 1970;
@@ -617,7 +617,6 @@ TASK(DigitalInTask)
 
    /* read inputs */
     ciaaPOSIX_read(fd_in, &inputs, 1);
-    if (pos_data.log >= 9990) pos_data.log = 0;
     if ((inputs&0x01) != estado_in1)
     {
 	    cambioestado=1;
@@ -688,6 +687,7 @@ TASK(DigitalInTask)
 
    if (cambioestado == 1)
    {
+	    if (pos_data.log >= 9999) pos_data.log = 0;
 	    pos_data.log += 1;				// evento cambio in1
 		put(pos_data,&cola,&cabeza,&items); //guardo evento en cola de envio
 		/* Genero evento de cambio de estado*/
@@ -696,7 +696,7 @@ TASK(DigitalInTask)
 /* TEST_1: Visualizo por UART el estado de las salidas*/
 
 #ifdef Test_DigitalInTask
-	   char messageinestado[] = "Estado de las entradas: \r";
+	   char messageinestado[] = "\r Estado de las entradas: ";
 	   ciaaPOSIX_write(fd_uart_usb, messageinestado, ciaaPOSIX_strlen(messageinestado));
 	   ciaaPOSIX_write(fd_uart_usb, valor_in, 4);
 #endif
@@ -770,6 +770,8 @@ TASK(AnalogInTask)
    /*Reset banderas de cambio de estado*/
    if ((estado_ch1|estado_ch3) == 1)
    {
+	   if (pos_data.log >= 9999) pos_data.log = 0;
+	   pos_data.log += 1;
 	   put(pos_data,&cola,&cabeza,&items); //guardo evento en cola de envio
 	   estado_ch1=0;
   	   estado_ch3=0;
@@ -900,12 +902,13 @@ TASK(GsmTask)
 
 			case SET:
 			{
-				if(x==1) ciaaPOSIX_write(fd_uart_gsm, APN, ciaaPOSIX_strlen(APN)); 			 //Consulto si tiene señal gprs
-				if(x==2) ciaaPOSIX_write(fd_uart_gsm, CIIR, ciaaPOSIX_strlen(CIIR));  		 //Consulto si tiene señal gprs "AT+CIICR";
-				if(x==3) ciaaPOSIX_write(fd_uart_gsm, CIFSR, ciaaPOSIX_strlen(CIFSR));  	 //Consulto si tiene señal gprs "AT+CIFSR";
-				if(x==4) ciaaPOSIX_write(fd_uart_gsm, CIPSHUT, ciaaPOSIX_strlen(CIPSHUT));
-				if(x==5) ciaaPOSIX_write(fd_uart_gsm, IP, ciaaPOSIX_strlen(IP)); 		 	 //Configuro ip y puerto ;
-				if(x<6)
+				if(x==1) ciaaPOSIX_write(fd_uart_gsm, CIPSHUT, ciaaPOSIX_strlen(CIPSHUT));
+				if(x==2) ciaaPOSIX_write(fd_uart_gsm, APN, ciaaPOSIX_strlen(APN)); 			 //Consulto si tiene señal gprs
+				if(x==3) ciaaPOSIX_write(fd_uart_gsm, CIIR, ciaaPOSIX_strlen(CIIR));  		 //Consulto si tiene señal gprs "AT+CIICR";
+				if(x==4) ciaaPOSIX_write(fd_uart_gsm, CIFSR, ciaaPOSIX_strlen(CIFSR));  	 //Consulto si tiene señal gprs "AT+CIFSR";
+				if(x==5) ciaaPOSIX_write(fd_uart_gsm, CIPSHUT, ciaaPOSIX_strlen(CIPSHUT));
+				if(x==6) ciaaPOSIX_write(fd_uart_gsm, IP, ciaaPOSIX_strlen(IP)); 		 	 //Configuro ip y puerto ;
+				if(x<7)
 				{
 					SetRelAlarm(SetEventTimeOut, 10000, 0);				//Activo time out 2 segundos
 					WaitEvent(EVENTOK | EVENTERROR | EVENTTIMEOUT);		//Espero respuesta
@@ -924,12 +927,13 @@ TASK(GsmTask)
 						GetEvent(GsmTask, &Events);
 						ClearEvent(Events);
 						estado_gsm = RED;								// Si hay error comienzo nuevamente el ciclo
+						x==1;
 					}
 				}
-				if(x>=6)
+				if(x>=7)
 				{
 					estado_gsm = SEND;
-					x=7;
+					x=8;
 				}
 				SetRelAlarm(SetEventTimeOut, 2000, 0);				//Activo time out 2000 mseg para envio entre comandos
 				WaitEvent(EVENTTIMEOUT);							//Espero respuesta
@@ -1068,7 +1072,7 @@ TASK(GsmTask)
 				if (Events & EVENTTIMEOUT)
 				{
 					estado_gsm = RED;
-					x=4;
+					x=5;
 				}
 				break;
 			}
@@ -1141,6 +1145,8 @@ TASK(EventTask)
 	time_event_position++;							//Cada 1 min genero evento y lo pongo en la cola de envios
 	if (time_event_position==TIME_POSITION)
 	{
+		if (pos_data.log >= 9999) pos_data.log = 0;
+		pos_data.log += 1;
 		pos_data.event = CAMBIO_POS;				// evento posicion ciaa
 		put(pos_data,&cola,&cabeza,&items); //guardo evento en cola de envio
 		time_event_position=0;
