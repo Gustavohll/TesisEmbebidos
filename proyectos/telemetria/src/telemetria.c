@@ -927,7 +927,7 @@ TASK(GsmTask)
 						GetEvent(GsmTask, &Events);
 						ClearEvent(Events);
 						estado_gsm = RED;								// Si hay error comienzo nuevamente el ciclo
-						x==1;
+						x=1;
 					}
 				}
 				if(x>=7)
@@ -1044,7 +1044,7 @@ TASK(GsmTask)
 					}
 
 				}
-				SetRelAlarm(SetEventTimeOut, 1000, 0);				//Genero time out 1 segundo
+				SetRelAlarm(SetEventTimeOut, 100, 0);				//Genero time out 1 segundo
 				WaitEvent(EVENTTIMEOUT);
 				GetEvent(GsmTask, &Events);
 				ClearEvent(Events);
@@ -1053,7 +1053,6 @@ TASK(GsmTask)
 
 			case ACKNOLEGE:
 			{
-
 				SetRelAlarm(SetEventTimeOut, 15000, 0);						// Activo time out 15 segundos
 				WaitEvent(EVENTACK | EVENTTIMEOUT);							// Espero ACK O TIMEOUT
 				GetEvent(GsmTask, &Events);

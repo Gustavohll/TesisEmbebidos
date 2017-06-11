@@ -90,8 +90,8 @@ int8_t respuesta_gps[100];
 #define CAMBIO_IN2 11
 #define CAMBIO_IN3 12
 #define CAMBIO_IN4 13
-#define CAMBIO_ADC1 14
-#define CAMBIO_ADC2 15
+#define CAMBIO_ADC1 70
+#define CAMBIO_ADC2 71
 
 
 //static int cola = 0;
