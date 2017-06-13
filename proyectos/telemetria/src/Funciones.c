@@ -234,7 +234,7 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 	double aux,aux2;
 	int fecha;
 	#ifdef Test_GSM
-	int8_t respuesta_gps[]="GPGGA,0000009.001,03443.011810,0S,005818.595681,0W,01,05,03.44,00.983,0M,014.456,0M,,*5B";
+	int8_t respuesta_gps[]="GPGGA,0150212.000,0,0,0,0,0,0,0,0,0,0,0,,*5B";
 	//
 	int8_t respuesta_gps2[]="GPRMC,0000009.991,0A,0,0,0,0,0,0,0031016,,,N*41";
 	#endif
@@ -301,14 +301,19 @@ void Guardo_datos_posicion(struct DATOS_POSICION * p,uint8_t *statusgps)
 //>RUS07,T,1502120,,V,0,W,0,X,0,Y,0,Z,0,a,0,b,0,0;ID=C001;#IP0:9987<
 void genero_paquete_RUS07(struct DATOS_POSICION p,char *paq1,char *paq2)
 {
-	//char paq1[200];
 	char str[10]=">RUS07,T,";
 	char str2[25]=";ID=C001;#IP0:";
 	char str3[25]="< \x1A";
 	ciaaPOSIX_strcat(paq1, str);				// Copio encabezado
-	if (p.fecha < 100000) ciaaPOSIX_strcat(paq1, "0");
-	itoa(p.fecha,str,10);
-	ciaaPOSIX_strcat(paq1, str);				// Copio fecha en paquete
+	if (p.Lat != 0)								// Si hay posicion pongo fecha, sino pongo 1970
+	{
+		if (p.fecha < 100000) ciaaPOSIX_strcat(paq1, "0");
+		itoa(p.fecha,str,10);
+		ciaaPOSIX_strcat(paq1, str);				// Copio fecha en paquete
+	}else
+	{
+		ciaaPOSIX_strcat(paq1, "101070");
+	}
 	if (p.hora < 100000) ciaaPOSIX_strcat(paq1, "0");
 	if (p.hora < 10000)	 ciaaPOSIX_strcat(paq1, "0");
 	if (p.hora < 1000)	 ciaaPOSIX_strcat(paq1, "0");
@@ -335,9 +340,6 @@ void genero_paquete_RUS07(struct DATOS_POSICION p,char *paq1,char *paq2)
 	ciaaPOSIX_strcat(paq2, ",Y,");
 	itoa(p.Modbus,str,10);
 	ciaaPOSIX_strcat(paq2, str);				// Copio Modbus en paquete
-	//ciaaPOSIX_strcat(paq2, ",");
-	//itoa(p.event,str,10);
-	//ciaaPOSIX_strcat(paq2, str);				// Copio n° de paquete
 	ciaaPOSIX_strcat(paq2, str2);				// Copio Fin de Paquete1
 	if (p.log < 1000) ciaaPOSIX_strcat(paq2, "0");
 	if (p.log < 100)  ciaaPOSIX_strcat(paq2, "0");
