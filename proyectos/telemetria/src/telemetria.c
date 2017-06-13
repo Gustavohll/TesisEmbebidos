@@ -927,7 +927,10 @@ TASK(GsmTask)
 						GetEvent(GsmTask, &Events);
 						ClearEvent(Events);
 						estado_gsm = RED;								// Si hay error comienzo nuevamente el ciclo
-						x=1;
+						if (x >= 5)
+							x=5;
+						else
+							x=1;
 					}
 				}
 				if(x>=7)
