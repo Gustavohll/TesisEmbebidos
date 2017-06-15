@@ -688,8 +688,9 @@ TASK(DigitalInTask)
    if (cambioestado == 1)
    {
 	    if (pos_data.log >= 9999) pos_data.log = 0;
-	    pos_data.log += 1;				// evento cambio in1
-		put(pos_data,&cola,&cabeza,&items); //guardo evento en cola de envio
+	    pos_data.log += 1;					// evento cambio in1
+		put(pos_data,&cola,&cabeza,&items); // guardo evento en cola de envio
+		blinkled();
 		/* Genero evento de cambio de estado*/
 		cambioestado=0;
 
