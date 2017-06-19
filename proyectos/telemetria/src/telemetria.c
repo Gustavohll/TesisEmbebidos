@@ -633,80 +633,85 @@ TASK(DigitalInTask)
 		    valor_in[0]='0';
 		    pos_data.IN1 = 0;
 	    }
-    }
-   if ((inputs&0x02) != estado_in2)
-   {
-	   cambioestado=1;
-	   pos_data.event = CAMBIO_IN2;				// evento cambio in2
-	   if ((inputs&0x02) == 2)
-   	   {
-   		   estado_in2=2;
-   		   valor_in[1]='1';
-   		   pos_data.IN2 = 1;
-   	   }else
-   	   {
-   		   estado_in2=0;
-   		   valor_in[1]='0';
-   		   pos_data.IN2 = 0;
-   	   }
-      }
-   if ((inputs&0x04) != estado_in3)
-   {
-	   cambioestado=1;
-	   pos_data.event = CAMBIO_IN3;				// evento cambio in3
-   	   if ((inputs&0x04) == 4)
-   	   {
-   		   estado_in3=4;
-   		   valor_in[2]='1';
-   		   pos_data.IN3 = 1;
-   	   }else
-   	   {
-   		   estado_in3=0;
-   		   valor_in[2]='0';
-   		   pos_data.IN3 = 0;
-   	   }
-   }
-   if ((inputs&0x08) != estado_in4)
-   {
-	   cambioestado=1;
-	   pos_data.event = CAMBIO_IN4;				// evento cambio in4
-   	   if ((inputs&0x08) == 8)
-   	   {
-   		   estado_in4=8;
-   		   valor_in[3]='1';
-   		   pos_data.IN4 = 1;
-   	   }else
-   	   {
-   		   estado_in4=0;
-   		   valor_in[3]='0';
-   		   pos_data.IN4 = 0;
-   	   }
-   }
-
-//   pos_data.Digital_In = inputs;
-
-   if (cambioestado == 1)
-   {
 	    if (pos_data.log >= 9999) pos_data.log = 0;
-	    pos_data.log += 1;					// evento cambio in1
-		put(pos_data,&cola,&cabeza,&items); // guardo evento en cola de envio
+	    pos_data.log += 1;
+	    put(pos_data,&cola,&cabeza,&items); 		// guardo evento en cola de envio
+    }
+    if ((inputs&0x02) != estado_in2)
+    {
+    	cambioestado=1;
+	    pos_data.event = CAMBIO_IN2;				// evento cambio in2
+	    if ((inputs&0x02) == 2)
+   	    {
+   		    estado_in2=2;
+   		    valor_in[1]='1';
+   		    pos_data.IN2 = 1;
+   	    }else
+   	    {
+   		    estado_in2=0;
+   		    valor_in[1]='0';
+   		    pos_data.IN2 = 0;
+   	    }
+	    if (pos_data.log >= 9999) pos_data.log = 0;
+	    pos_data.log += 1;
+	   	put(pos_data,&cola,&cabeza,&items); 		// guardo evento en cola de envio
+    }
+    if ((inputs&0x04) != estado_in3)
+    {
+	    cambioestado=1;
+	    pos_data.event = CAMBIO_IN3;				// evento cambio in3
+   	    if ((inputs&0x04) == 4)
+   	    {
+   		    estado_in3=4;
+   		    valor_in[2]='1';
+   		    pos_data.IN3 = 1;
+   	    }else
+   	    {
+   		    estado_in3=0;
+   		    valor_in[2]='0';
+   		    pos_data.IN3 = 0;
+   	    }
+   	    if (pos_data.log >= 9999) pos_data.log = 0;
+   	 	pos_data.log += 1;
+   	 	put(pos_data,&cola,&cabeza,&items); 		// guardo evento en cola de envio
+    }
+	if ((inputs&0x08) != estado_in4)
+	{
+	   cambioestado=1;
+	   pos_data.event = CAMBIO_IN4;					// evento cambio in4
+	   if ((inputs&0x08) == 8)
+	   {
+		   estado_in4=8;
+		   valor_in[3]='1';
+		   pos_data.IN4 = 1;
+	   }else
+	   {
+		   estado_in4=0;
+		   valor_in[3]='0';
+		   pos_data.IN4 = 0;
+	   }
+	   if (pos_data.log >= 9999) pos_data.log = 0;
+	   pos_data.log += 1;
+	   put(pos_data,&cola,&cabeza,&items); 			// guardo evento en cola de envio
+	}
+
+	if (cambioestado == 1)
+	{
 		blinkled();
 		/* Genero evento de cambio de estado*/
 		cambioestado=0;
-
-/* TEST_1: Visualizo por UART el estado de las salidas*/
-
-#ifdef Test_DigitalInTask
+	/* TEST_1: Visualizo por UART el estado de las salidas*/
+	#ifdef Test_DigitalInTask
 	   char messageinestado[] = "\r Estado de las entradas: ";
 	   ciaaPOSIX_write(fd_uart_usb, messageinestado, ciaaPOSIX_strlen(messageinestado));
 	   ciaaPOSIX_write(fd_uart_usb, valor_in, 4);
-#endif
-   }
-   /* Activates the SerialEchoTask task */
-   ActivateTask(AnalogInTask);
-   /* end PeriodicTask */
-   TerminateTask();
-}
+	#endif
+	}
+	/* Activates the SerialEchoTask task */
+	ActivateTask(AnalogInTask);
+	/* end PeriodicTask */
+	TerminateTask();
+	}
 TASK(AnalogInTask)
 {
    /*
